@@ -1583,13 +1583,12 @@ export async function executeIncrementalUpdateFromSummary(
              EDITOR.info("AI在<tableEdit>标签内未提供任何操作指令，表格内容未发生变化。");
              return 'success';
         }
-
-        executeTableEditActions([operationsString])
-
-        if (operationsApplied === 0 && operations.length > 0) {
-             EDITOR.error("AI返回的操作指令未能成功应用到表格。请检查开发者控制台。");
-             return 'error';
+        try{
+            executeTableEditActions([operationsString])
+        }catch(e){
+            EDITOR.error("执行表格操作指令时出错: " , e);
         }
+        
 
         const currentChat = USER.getContext().chat[USER.getContext().chat.length - 1];
         if (currentChat) {
