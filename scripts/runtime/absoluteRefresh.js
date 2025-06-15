@@ -1,6 +1,6 @@
 // absoluteRefresh.js
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../../core/manager.js';
-import { findTableStructureByIndex, convertOldTablesToNewSheets } from "../../index.js";
+import { findTableStructureByIndex, convertOldTablesToNewSheets, executeTableEditActions } from "../../index.js";
 import { insertRow, updateRow, deleteRow } from "../../core/table/oldTableActions.js";
 import JSON5 from '../../utils/json5.min.mjs'
 import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
@@ -1584,45 +1584,7 @@ export async function executeIncrementalUpdateFromSummary(
              return 'success';
         }
 
-        const operations = operationsString.split('\n').map(s => s.trim()).filter(s => s);
-        let operationsApplied = 0;
-        
-        for (const opStr of operations) {
-            try {
-                if (opStr.startsWith('insertRow(')) {
-                    const match = opStr.match(/insertRow\(\s*(\d+)\s*,\s*({.*?})\s*\)/);
-                    if (match) {
-                        const tableIndex = parseInt(match[1], 10);
-                        let dataString = match[2];
-                        dataString = dataString.replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
-                        const data = JSON5.parse(dataString);
-                        insertRow(tableIndex, data);
-                        operationsApplied++;
-                    }
-                } else if (opStr.startsWith('updateRow(')) {
-                    const match = opStr.match(/updateRow\(\s*(\d+)\s*,\s*(\d+)\s*,\s*({.*?})\s*\)/);
-                    if (match) {
-                        const tableIndex = parseInt(match[1], 10);
-                        const rowIndex = parseInt(match[2], 10);
-                        let dataString = match[3];
-                        dataString = dataString.replace(/([{,]\s*)(\d+)(\s*:)/g, '$1"$2"$3');
-                        const data = JSON5.parse(dataString);
-                        updateRow(tableIndex, rowIndex, data);
-                        operationsApplied++;
-                    }
-                } else if (opStr.startsWith('deleteRow(')) {
-                    const match = opStr.match(/deleteRow\(\s*(\d+)\s*,\s*(\d+)\s*\)/);
-                    if (match) {
-                        const tableIndex = parseInt(match[1], 10);
-                        const rowIndex = parseInt(match[2], 10);
-                        deleteRow(tableIndex, rowIndex);
-                        operationsApplied++;
-                    }
-                }
-            } catch (e) {
-                console.error(`Error processing operation "${opStr}":`, e);
-            }
-        }
+        executeTableEditActions([operationsString])
 
         if (operationsApplied === 0 && operations.length > 0) {
              EDITOR.error("AI返回的操作指令未能成功应用到表格。请检查开发者控制台。");
