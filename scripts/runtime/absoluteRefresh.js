@@ -4,11 +4,10 @@ import { findTableStructureByIndex, convertOldTablesToNewSheets, executeTableEdi
 import { insertRow, updateRow, deleteRow } from "../../core/table/oldTableActions.js";
 import JSON5 from '../../utils/json5.min.mjs'
 import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
-import { reloadCurrentChat } from "../../../../../../script.js";
+import { reloadCurrentChat } from "/script.js";
 import { estimateTokenCount, handleCustomAPIRequest, handleMainAPIRequest } from "../settings/standaloneAPI.js";
 import { profile_prompts } from "../../data/profile_prompts.js";
 import { refreshContextView } from "../editor/chatSheetsDataView.js";
-import { PopupConfirm } from "../../components/popupConfirm.js";
 import { Form } from '../../components/formManager.js';
 import {refreshRebuildTemplate} from "../settings/userExtensionSetting.js"
 

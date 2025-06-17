@@ -2,8 +2,6 @@ import { APP, BASE, DERIVED, EDITOR, SYSTEM, USER } from './core/manager.js';
 import { openTableRendererPopup, updateSystemMessageTableStatus } from "./scripts/renderer/tablePushToChat.js";
 import { loadSettings } from "./scripts/settings/userExtensionSetting.js";
 import { ext_getAllTables, ext_exportAllTablesAsJson } from './scripts/settings/standaloneAPI.js';
-// 移除旧表格系统引用
-// import {initAllTable, TableEditAction} from "./scripts/oldTableActions.js";
 import { openTableDebugLogPopup } from "./scripts/settings/devConsole.js";
 import { TableTwoStepSummary } from "./scripts/runtime/separateTableUpdate.js";
 import { initTest } from "./components/_fotTest.js";
