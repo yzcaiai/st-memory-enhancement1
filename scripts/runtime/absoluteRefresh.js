@@ -1648,16 +1648,6 @@ export async function executeIncrementalUpdateFromSummary(
         }catch(e){
             EDITOR.error("执行表格操作指令时出错: " , e);
         }
-        
-
-        const currentChat = USER.getContext().chat[USER.getContext().chat.length - 1];
-        if (currentChat) {
-            convertOldTablesToNewSheets(DERIVED.any.waitingTable, currentChat);
-            await USER.getContext().saveChat();
-        } else {
-            EDITOR.error("无法更新聊天记录：找不到当前聊天。");
-            return 'error';
-        }
 
         refreshContextView();
         updateSystemMessageTableStatus();
