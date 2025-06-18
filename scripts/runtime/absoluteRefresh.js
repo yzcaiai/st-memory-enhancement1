@@ -1648,7 +1648,7 @@ export async function executeIncrementalUpdateFromSummary(
         }catch(e){
             EDITOR.error("执行表格操作指令时出错: " , e);
         }
-
+        USER.saveChat()
         refreshContextView();
         updateSystemMessageTableStatus();
         EDITOR.success(isStepByStepSummary ? '分步总结完成！' : '表格整理完成！');
