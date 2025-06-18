@@ -1458,19 +1458,19 @@ export async function triggerStepByStepNow() {
     const tableHeadersJsonString = JSON.stringify(tableHeadersOnly);
 
     const chat = USER.getContext().chat;
-    const lastChats = await getRecentChatHistory(
-        chat,
-        USER.tableBaseSetting.clear_up_stairs, // 使用现有的设置
-        USER.tableBaseSetting.ignore_user_sent,
-        USER.tableBaseSetting.rebuild_token_limit_value
-    );
+    const lastChats = USER.getChatPiece()
+
+    if(!lastChats){
+        EDITOR.error('无法触发填表：找不到有效的聊天记录。');
+        return;
+    }
 
     const useMainAPI = USER.tableBaseSetting.step_by_step_use_main_api;
 
     // 2. 调用核心执行函数
-    EDITOR.info("正在启动手动分步填表...");
+    EDITOR.info("正在启动手动分步填表...", lastChats.mes);
     const result = await executeIncrementalUpdateFromSummary(
-        lastChats,
+        lastChats.mes,
         originTableText,
         tableHeadersJsonString,
         enabledSheets, // 传递启用的表格
