@@ -156,15 +156,15 @@
                                     </div>
                                     <div style="padding-left: 5px; margin-bottom: 10px;">
                                         <div style="display: flex; align-items: center; gap: 10px;">
-                                            <label for="step_by_step_user_prompt" data-i18n="settings.label.stepByStepUserPrompt">分步填表整体结构</label>
+                                            <label for="step_by_step_user_prompt" data-i18n="settings.label.stepByStepUserPrompt">独立填表整体结构</label>
                                             <div class="menu_button button-square-icon fa-solid fa-undo" id="reset_step_by_step_user_prompt" title="重置为默认" data-i18n="[title]Reset to default"></div>
                                         </div>
-                                        <small class="toggle-description justifyLeft" data-i18n="settings.hint.stepByStepUserPrompt">(分步填表时，请求将以此结构发送，请保持可被json解析)</small>
-                                        <textarea id="step_by_step_user_prompt" class="text_pole settings_textarea wide100p" rows="8" placeholder="输入分步填表提示词"></textarea>
+                                        <small class="toggle-description justifyLeft" data-i18n="settings.hint.stepByStepUserPrompt">(独立填表时，请求将以此结构发送，请保持可被json解析)</small>
+                                        <textarea id="step_by_step_user_prompt" class="text_pole settings_textarea wide100p" rows="8" placeholder="输入独立填表提示词"></textarea>
                                     </div>
                                     <div class="checkbox_label range-block justifyLeft">
                                         <input type="checkbox" id="confirm_before_execution" checked><span data-i18n="Confirm before execution">执行时确认</span>
-                                        <small class="toggle-description justifyLeft" data-i18n="Confirm before execution description">(分步流程遇到检查节点时会弹出确认框)</small>
+                                        <small class="toggle-description justifyLeft" data-i18n="Confirm before execution description">(独立填表流程遇到检查节点时会弹出确认框)</small>
                                     </div>
                                 </div>
 
@@ -177,7 +177,7 @@
                             <!-- 重新整理表格 -->
                             <div  class="inline-drawer wide100p">
                                 <div class="standoutHeader inline-drawer-toggle inline-drawer-header">
-                                    <b><span data-i18n="Reorganize tables">重新整理表格</span></b>
+                                    <b><span data-i18n="Reorganize tables">表格总结/整理</span></b>
                                     <div class="fa-solid fa-circle-chevron-down inline-drawer-icon down"></div>
                                 </div>
                                 <div class="inline-drawer-content" style="display: none; ">
@@ -201,24 +201,19 @@
                                     <div class="checkbox_label">
                                         <input type="checkbox" id="ignore_user_sent" checked><span data-i18n="Only reference AI replies">只参考AI回复的消息</span>
                                     </div>
-                                    <!-- 先屏蔽refresh相关，等后面确认没有用了就删了 -->
-                                    <!-- <div class="checkbox_label range-block justifyLeft">
-                                        <input type="checkbox" id="ignore_del" checked><span data-i18n="When reorganizing, don't delete, only modify and add">整理时不删除，只修改和添加</span>
-                                        <small class="toggle-description justifyLeft" data-i18n="When reorganizing, don't delete description">(仅标记为<code>**旧**</code>的整理类型生效)</small>
-                                    </div> -->
                                     <div class="checkbox_label">
-                                        <input type="checkbox" id="bool_silent_refresh"><span data-i18n="Skip confirmation dialog after reorganizing">跳过整理后的确认弹窗</span>
+                                        <input type="checkbox" id="bool_silent_refresh"><span data-i18n="Skip confirmation dialog after reorganizing">跳过总结后的确认弹窗</span>
                                     </div>
 
                                     <div class="flex-container" style="flex-wrap: nowrap; padding-top: 10px;">
-                                        <b style="width: 170px;">重整理模板</b>
+                                        <b style="width: 170px;">总结模板</b>
                                         <select id="rebuild--select">
                                         </select>
-                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-pencil" id="rebuild--set-rename" title="编辑重整理模板"></div>
-                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-plus" id="rebuild--set-new" title="创建重整理模板"></div>
-                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-import" id="rebuild--set-import" title="导入重整理模板"></div>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-pencil" id="rebuild--set-rename" title="编辑总结模板"></div>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-plus" id="rebuild--set-new" title="创建总结模板"></div>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-import" id="rebuild--set-import" title="导入总结模板"></div>
                                         <input type="file" id="rebuild--set-importFile" accept=".json" hidden>
-                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-export" id="rebuild--set-export" title="导出重整理模板"></div>
+                                        <div class="rebuild--add menu_button menu_button_icon fa-solid fa-file-export" id="rebuild--set-export" title="导出总结模板"></div>
                                         <div class="rebuild--del menu_button menu_button_icon fa-solid fa-trash redWarningBG" id="rebuild--set-delete" title="删除此模板"></div>
                                     </div>
 

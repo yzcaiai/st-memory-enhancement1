@@ -74,7 +74,7 @@ export class Sheet extends SheetBase {
      * 保存表格数据
      * @returns {Sheet|boolean}
      */
-    save(targetPiece = USER.getChatPiece(), manualSave = false) {
+    save(targetPiece = USER.getChatPiece()?.piece, manualSave = false) {
         const sheetDataToSave = this.filterSavingData()
         sheetDataToSave.template = this.template?.uid;
 
@@ -141,7 +141,7 @@ export class Sheet extends SheetBase {
             rows = rowsArray.join('\n');
         }
         let result = '';
-
+        console.log('测试获取表格内容提示词', customParts, result, this);
         if (customParts.includes('title')) {
             result += title;
         }

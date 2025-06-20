@@ -78,7 +78,7 @@ export async function TableTwoStepSummary(mode) {
     if (mode!=="manual" && (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.step_by_step === false)) return
 
     // 获取需要执行的两步总结
-    const todoPiece = USER.getChatPiece()
+    const {piece: todoPiece} = USER.getChatPiece()
 
     if (todoPiece === undefined) {
         console.log('未找到待填表的对话片段');

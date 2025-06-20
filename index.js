@@ -170,6 +170,7 @@ export function initTableData(eventData) {
 export function getTablePrompt(eventData, isPureData = false) {
     const lastSheetsPiece = BASE.getReferencePiece()
     if(!lastSheetsPiece) return ''
+    console.log("获取到的参考表格数据", lastSheetsPiece)
     return getTablePromptByPiece(lastSheetsPiece, isPureData)
 }
 
@@ -310,7 +311,7 @@ export function executeTableEditActions(matches, referencePiece) {
     for (const EditAction of sortActions(tableEditActions)) {
         executeAction(EditAction, sheets)
     }
-    const savePiece = USER.getChatPiece()
+    const {piece: savePiece} = USER.getChatPiece()
     sheets.forEach(sheet => sheet.save(savePiece, true))
     console.log("聊天模板：", BASE.sheetsData.context)
     console.log("测试总chat", USER.getContext().chat)

@@ -286,15 +286,26 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
         // 搜索systemPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats
         systemPrompt = systemPrompt.replace(/\$0/g, originText);
         systemPrompt = systemPrompt.replace(/\$1/g, lastChats);
+        systemPrompt = systemPrompt.replace(/\$2/g, tableHeadersJson);
+        systemPrompt = systemPrompt.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
         // 搜索userPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats，将$2替换成空表头
         userPrompt = userPrompt.replace(/\$0/g, originText);
         userPrompt = userPrompt.replace(/\$1/g, lastChats);
         userPrompt = userPrompt.replace(/\$2/g, tableHeadersJson);
+        userPrompt = userPrompt.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
 
         // console.log('systemPrompt:', systemPrompt);
         // console.log('userPrompt:', userPrompt);
 
-        console.log('预估token数量为：' + estimateTokenCount(systemPrompt + userPrompt));
+        let parsedSystemPrompt
+
+        try {
+            parsedSystemPrompt = JSON5.parse(systemPrompt)
+            console.log('解析后的 systemPrompt:', parsedSystemPrompt);
+        } catch (error) {
+            console.log("未解析成功", error)
+            parsedSystemPrompt = systemPrompt
+        }
 
         // 生成响应内容
         let rawContent;
@@ -308,6 +319,7 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
             } catch (error) {
                 EDITOR.clear();
                 EDITOR.error('主API请求错误: ' + error.message);
+                console.error('主API请求错误:', error);
             }
         }
         else {
@@ -331,6 +343,21 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
             EDITOR.error('API响应内容无效或为空，无法继续处理表格。');
             console.error('API响应内容无效或为空，rawContent:', rawContent);
             return;
+        }
+
+        const temp = USER.tableBaseSetting.rebuild_message_template_list[USER.tableBaseSetting.lastSelectedTemplate];
+        if(temp && temp.parseType === 'text'){
+            const previewHtml = `
+                <div>
+                    <div style="margin-bottom: 10px; display: flex; align-items: center;">
+                        <span style="margin-right: 10px;">返回的总结结果，请复制后使用</span>
+                    </div>
+                    <textarea id="rebuild_text_preview" rows="10" style="width: 100%">${rawContent}</textarea>
+                </div>`;
+            
+            const popup = new EDITOR.Popup(previewHtml, EDITOR.POPUP_TYPE.TEXT, '', { wide: true });
+            await popup.show()
+            return
         }
 
         //清洗
@@ -373,9 +400,9 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
 
                 // 更新聊天记录
                 const chat = USER.getContext().chat;
-                const lastIndex = chat.length - 1;
-                if (lastIndex >= 0) {
-                    convertOldTablesToNewSheets(clonedTables, chat[lastIndex])
+                const {piece} = USER.getChatPiece()
+                if (piece) {
+                    convertOldTablesToNewSheets(clonedTables, piece)
                     await USER.getContext().saveChat(); // 等待保存完成
                 } else {
                     throw new Error("聊天记录为空");
@@ -644,10 +671,10 @@ export async function refreshTableActions(force = false, silentUpdate = false, c
         const tableContainer = document.querySelector('#tableContainer');
         refreshContextView();
         updateSystemMessageTableStatus()
-        EDITOR.success('表格整理完成');
+        EDITOR.success('表格总结完成');
     } catch (error) {
-        console.error('整理过程出错:', error);
-        EDITOR.error(`整理失败：${error.message}`);
+        console.error('总结过程出错:', error);
+        EDITOR.error(`总结失败：${error.message}`);
     } finally {
 
     }
@@ -679,7 +706,7 @@ export async function rebuildSheets() {
 
     const previewDiv1 = document.createElement('div');
     previewDiv1.className = 'rebuild-preview-item';
-    previewDiv1.innerHTML = `<span>执行前确认？：</span>${USER.tableBaseSetting.bool_silent_refresh ? '否' : '是'}`;
+    previewDiv1.innerHTML = `<span>执行完毕后确认？：</span>${USER.tableBaseSetting.bool_silent_refresh ? '否' : '是'}`;
     container.appendChild(previewDiv1);
 
     const previewDiv2 = document.createElement('div');
@@ -690,7 +717,7 @@ export async function rebuildSheets() {
     const hr = document.createElement('hr');
     container.appendChild(hr);
 
-    /* // 创建选择器容器
+    // 创建选择器容器
     const selectorContainer = document.createElement('div');
     container.appendChild(selectorContainer);
 
@@ -701,36 +728,52 @@ export async function rebuildSheets() {
         <select id="rebuild_template_selector" class="rebuild-preview-text text_pole" style="width: 100%">
             <option value="">加载中...</option>
         </select>
-        <span class="rebuild-preview-text" style="margin-top: 10px">模板末尾补充提示词：</span>
+        <span class="rebuild-preview-text" style="margin-top: 10px">模板信息：</span>
+        <div id="rebuild_template_info" class="rebuild-preview-text" style="margin-top: 10px"></div>
+        <span class="rebuild-preview-text" style="margin-top: 10px">其他要求：</span>
         <textarea id="rebuild_additional_prompt" class="rebuild-preview-text text_pole" style="width: 100%; height: 80px;"></textarea>
     `;
-    selectorContainer.appendChild(selectorContent); */
+    selectorContainer.appendChild(selectorContent);
 
-    /* // 初始化选择器选项
+    // 初始化选择器选项
     const $selector = $(selectorContent.querySelector('#rebuild_template_selector'))
+    const $templateInfo = $(selectorContent.querySelector('#rebuild_template_info'))
     const $additionalPrompt = $(selectorContent.querySelector('#rebuild_additional_prompt'))
     $selector.empty(); // 清空加载中状态
 
+    const temps = USER.tableBaseSetting.rebuild_message_template_list
     // 添加选项
-    Object.entries(profile_prompts).forEach(([key, prompt]) => {
-        let prefix = '';
-        if (prompt.type === 'refresh') prefix = '**旧** ';
-        if (prompt.type === 'third_party') prefix = '**第三方** ';
+    Object.entries(temps).forEach(([key, prompt]) => {
 
         $selector.append(
             $('<option></option>')
                 .val(key)
-                .text(prefix + (prompt.name || key))
+                .text(prompt.name || key)
         );
     });
 
     // 设置默认选中项
     // 从USER中读取上次选择的选项，如果没有则使用默认值
-    $selector.val(USER.tableBaseSetting?.lastSelectedTemplate || 'rebuild_base');
-    // 保存当前选择到USER中
-    USER.tableBaseSetting.lastSelectedTemplate = $selector.val();
-    $additionalPrompt.val(''); */
+    const defaultTemplate = USER.tableBaseSetting?.lastSelectedTemplate || 'rebuild_base';
+    $selector.val(defaultTemplate);
+    // 更新模板信息显示
+    if(defaultTemplate === 'rebuild_base') {
+        $templateInfo.text("默认模板，适用于Gemini，Grok，DeepSeek，使用聊天记录和表格信息重建表格，应用于初次填表、表格优化等场景。破限来源于TT老师。");
+    }else{
+        const templateInfo = temps[defaultTemplate]?.info || '无模板信息';
+        $templateInfo.text(templateInfo);
+    }
+    
 
+    // 监听选择器变化
+    $selector.on('change', function () {
+        const selectedTemplate = $(this).val();
+        const template = temps[selectedTemplate];
+        $templateInfo.text(template.info || '无模板信息');
+    })
+
+    
+    
     const confirmation = new EDITOR.Popup(container, EDITOR.POPUP_TYPE.CONFIRM, '', {
         okButton: "继续",
         cancelButton: "取消"
@@ -738,6 +781,10 @@ export async function rebuildSheets() {
 
     await confirmation.show();
     if (confirmation.result) {
+        const selectedTemplate = $selector.val();
+        const additionalPrompt = $additionalPrompt.val();
+        USER.tableBaseSetting.lastSelectedTemplate = selectedTemplate; // 保存用户选择的模板
+        DERIVED.any.additionalPrompt = additionalPrompt; // 保存附加提示内容
         getPromptAndRebuildTable();
     }
 }
@@ -1160,7 +1207,8 @@ function fixTableFormat(inputText) {
             }
         }
         EDITOR.clear();
-        EDITOR.error("整理失败！生成的回复不完整，大概率是破限问题!");
+        EDITOR.error("API返回了一个错误信息!");
+        EDITOR.error(inputText.length > 300 ? inputText.slice(0, 300) + '...' : inputText);
         throw new Error("未能找到完整的有效JSON数组，流程中止！");
 
         // console.warn("extractTable: 括号计数未能找到完整的有效JSON数组。将回退到正则表达式。");
@@ -1261,12 +1309,12 @@ function fixTableFormat(inputText) {
 export async function modifyRebuildTemplate() {
     const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
     const sheetConfig= {
-        formTitle: "编辑重整理模板",
-        formDescription: "设置重整理时的提示词结构",
+        formTitle: "编辑表格总结模板",
+        formDescription: "设置总结时的提示词结构，$0为上下文聊天记录，$1为当前表格数据，$2为表格模板[表头]数据，$3为用户输入的附加提示",
         fields: [
-            { label: '模板名字', type: 'label', text: selectedTemplate },
-            { label: '破限内容', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(用于整体提示词的开头)' },
-            { label: '整理规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理)' },
+            { label: '模板名字：', type: 'label', text: selectedTemplate },
+            { label: '系统提示词', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(填写破限，或者直接填写提示词整体json结构，填写结构的话，整理规则将被架空)' },
+            { label: '总结规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理）' },
         ],
     }
     let initialData = null
@@ -1296,16 +1344,16 @@ export async function modifyRebuildTemplate() {
  */
 export async function newRebuildTemplate() {
     const sheetConfig= {
-        formTitle: "新建重整理模板",
-        formDescription: "设置重整理时的提示词结构",
+        formTitle: "新建表格总结模板",
+        formDescription: "设置表格总结时的提示词结构，$0为上下文聊天记录，$1为当前表格数据，$2为表格模板[表头]数据，$3为用户输入的附加提示",
         fields: [
             { label: '模板名字', type: 'text', dataKey: 'name' },
-            { label: '破限内容', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(用于整体提示词的开头)' },
-            { label: '整理规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理, `$1`为上下文聊天记录的局部宏，`$2`为当前表格数据的局部宏)' },
+            { label: '系统提示词', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(填写破限，或者直接填写提示词整体json结构，填写结构的话，整理规则将被架空)' },
+            { label: '整理规则', type: 'textarea', rows: 6, dataKey: 'user_prompt_begin', description: '(用于给AI说明怎么重新整理）' },
         ],
     }
     const initialData = {
-        name: "新重整理模板",
+        name: "新表格总结模板",
         system_prompt: USER.tableBaseSetting.rebuild_default_system_message_template,
         user_prompt_begin: USER.tableBaseSetting.rebuild_default_message_template,
     };
@@ -1475,7 +1523,7 @@ export async function executeIncrementalUpdateFromSummary(
             }
         } catch (e) {
             console.error("Error parsing step_by_step_user_prompt string:", e, "Raw string:", stepByStepPromptString);
-            EDITOR.error("分步填表提示词格式错误，无法解析。请检查插件设置。");
+            EDITOR.error("独立填表提示词格式错误，无法解析。请检查插件设置。");
             return 'error';
         }
 
@@ -1585,7 +1633,7 @@ export async function executeIncrementalUpdateFromSummary(
         USER.saveChat()
         refreshContextView();
         updateSystemMessageTableStatus();
-        EDITOR.success('分步总结完成！');
+        EDITOR.success('独立填表完成！');
         return 'success';
 
     } catch (error) {

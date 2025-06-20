@@ -484,9 +484,10 @@ function InitBinging() {
     });
 
     // 手动触发分步填表
-    $('#trigger_step_by_step_button').on('click', () => {
+    $(document).on('click', '#trigger_step_by_step_button', () => {
         triggerStepByStepNow();
     });
+
 }
 
 /**
