@@ -138,7 +138,6 @@ export async function manualSummaryChat(todoChats, confirmResult) {
     const useMainApiForStepByStep = USER.tableBaseSetting.step_by_step_use_main_api ?? true;
     const isSilentMode = confirmResult === 'dont_remind_active';
 
-    // 调用增量更新函数，并传递 isStepByStepSummary 标志
     const r = await executeIncrementalUpdateFromSummary(
         todoChats,
         originText,
@@ -160,7 +159,6 @@ export async function manualSummaryChat(todoChats, confirmResult) {
         return true;
     } else if (r === 'suspended' || r === 'error' || !r) {
         console.log('执行增量两步总结失败或取消: ', `(${todoChats.length}) `, toBeExecuted);
-        MarkChatAsWaiting(currentPiece, swipeUid);
         return false;
     }
     

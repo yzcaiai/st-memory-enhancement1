@@ -1443,7 +1443,6 @@ export async function triggerStepByStepNow() {
  * @param {Array} referencePiece - 参考用的piece
  * @param {boolean} useMainAPI - 是否使用主API
  * @param {boolean} silentUpdate - 是否静默更新,不显示操作确认
- * @param {boolean} isStepByStepSummary - 是否为分步总结模式
  * @param {boolean} [isSilentMode=false] - 是否以静默模式运行API调用（不显示加载提示）
  * @returns {Promise<string>} 'success', 'suspended', 'error', or empty
  */
@@ -1532,7 +1531,6 @@ export async function executeIncrementalUpdateFromSummary(
             }
         } else { // Using Custom API
             try {
-                // Calls handleCustomAPIRequest for custom API, pass isStepByStepSummary flag
                 rawContent = await handleCustomAPIRequest(systemPromptForApi, userPromptForApi, true, isSilentMode);
                 if (rawContent === 'suspended') {
                     EDITOR.info('操作已取消 (自定义API)');
@@ -1586,7 +1584,7 @@ export async function executeIncrementalUpdateFromSummary(
         USER.saveChat()
         refreshContextView();
         updateSystemMessageTableStatus();
-        EDITOR.success(isStepByStepSummary ? '分步总结完成！' : '表格整理完成！');
+        EDITOR.success('分步总结完成！');
         return 'success';
 
     } catch (error) {
