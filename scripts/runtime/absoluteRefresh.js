@@ -1576,10 +1576,9 @@ export async function executeIncrementalUpdateFromSummary(
              EDITOR.info("AI在<tableEdit>标签内未提供任何操作指令，表格内容未发生变化。");
              return 'success';
         }
-        const matches = getTableEditTag(operationsString)
 
         try{
-            executeTableEditActions(matches, referencePiece)
+            executeTableEditActions([operationsString], referencePiece)
         }catch(e){
             EDITOR.error("执行表格操作指令时出错: " , e);
         }
