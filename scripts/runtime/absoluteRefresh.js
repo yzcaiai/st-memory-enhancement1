@@ -1,6 +1,6 @@
 // absoluteRefresh.js
 import { BASE, DERIVED, EDITOR, SYSTEM, USER } from '../../core/manager.js';
-import { findTableStructureByIndex, convertOldTablesToNewSheets, executeTableEditActions } from "../../index.js";
+import { findTableStructureByIndex, convertOldTablesToNewSheets, executeTableEditActions, getTableEditTag } from "../../index.js";
 import { insertRow, updateRow, deleteRow } from "../../core/table/oldTableActions.js";
 import JSON5 from '../../utils/json5.min.mjs'
 import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
@@ -1576,8 +1576,10 @@ export async function executeIncrementalUpdateFromSummary(
              EDITOR.info("AI在<tableEdit>标签内未提供任何操作指令，表格内容未发生变化。");
              return 'success';
         }
+        const matches = getTableEditTag(operationsString)
+
         try{
-            executeTableEditActions([operationsString], referencePiece)
+            executeTableEditActions(matches, referencePiece)
         }catch(e){
             EDITOR.error("执行表格操作指令时出错: " , e);
         }

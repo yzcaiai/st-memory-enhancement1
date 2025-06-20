@@ -588,7 +588,7 @@ function trimString(str) {
  * @returns {matches} 匹配到的内容数组
  */
 
-function getTableEditTag(mes) {
+export function getTableEditTag(mes) {
     const regex = /<tableEdit>(.*?)<\/tableEdit>/gs;
     const matches = [];
     let match;
