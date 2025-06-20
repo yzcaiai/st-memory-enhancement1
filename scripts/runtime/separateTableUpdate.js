@@ -81,23 +81,23 @@ export async function TableTwoStepSummary(mode) {
     const todoPiece = USER.getChatPiece()
 
     if (todoPiece === undefined) {
-        console.log('未找到待总结的对话片段');
-        EDITOR.error('未找到待总结的对话片段，请检查当前对话是否正确。');
+        console.log('未找到待填表的对话片段');
+        EDITOR.error('未找到待填表的对话片段，请检查当前对话是否正确。');
         return;
     }
     let todoChats = todoPiece.mes;
 
-    console.log('待总结的对话片段:', todoChats);
+    console.log('待填表的对话片段:', todoChats);
 
     // 检查是否开启执行前确认
-    const popupContentHtml = `<p>累计 ${todoChats.length} 长度的待总结文本，是否执行分步总结？</p>`;
+    const popupContentHtml = `<p>累计 ${todoChats.length} 长度的文本，是否开始独立填表？</p>`;
     // 移除了模板选择相关的HTML和逻辑
 
     const popupId = 'stepwiseSummaryConfirm';
     const confirmResult = await newPopupConfirm(
         popupContentHtml,
         "取消",
-        "执行总结",
+        "执行填表",
         popupId,
         "一直选是" // <--- 修改按钮文本
     );
@@ -105,15 +105,15 @@ export async function TableTwoStepSummary(mode) {
     console.log('newPopupConfirm result for stepwise summary:', confirmResult);
 
     if (confirmResult === false) {
-        console.log('用户取消执行分步总结: ', `(${todoChats.length}) `, toBeExecuted);
+        console.log('用户取消执行独立填表: ', `(${todoChats.length}) `, toBeExecuted);
         MarkChatAsWaiting(currentPiece, swipeUid);
     } else {
         // This block executes if confirmResult is true OR 'dont_remind_active'
         if (confirmResult === 'dont_remind_active') {
-            console.log('分步总结弹窗已被禁止，自动执行。');
+            console.log('独立填表弹窗已被禁止，自动执行。');
             EDITOR.info('已选择“一直选是”，操作将在后台自动执行...'); // <--- 增加后台执行提示
         } else { // confirmResult === true
-            console.log('用户确认执行分步总结 (或首次选择了“一直选是”并确认)');
+            console.log('用户确认执行独立填表 (或首次选择了“一直选是”并确认)');
         }
         manualSummaryChat(todoChats, confirmResult);
     }
@@ -148,7 +148,7 @@ export async function manualSummaryChat(todoChats, confirmResult) {
         isSilentMode // Pass silent mode flag
     );
 
-    console.log('执行分步总结（增量更新）结果:', r);
+    console.log('执行独立填表（增量更新）结果:', r);
     if (r === 'success') {
         toBeExecuted.forEach(chat => {
             const chatSwipeUid = getSwipeUid(chat);
@@ -158,7 +158,7 @@ export async function manualSummaryChat(todoChats, confirmResult) {
         reloadCurrentChat();
         return true;
     } else if (r === 'suspended' || r === 'error' || !r) {
-        console.log('执行增量两步总结失败或取消: ', `(${todoChats.length}) `, toBeExecuted);
+        console.log('执行增量独立填表失败或取消: ', `(${todoChats.length}) `, toBeExecuted);
         return false;
     }
     

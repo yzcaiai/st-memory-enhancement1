@@ -280,12 +280,13 @@ function InitBinging() {
     $('#dataTable_injection_mode').change(function (event) {
         USER.tableBaseSetting.injection_mode = event.target.value;
     });
-    // 分步总结
-    $('#step_by_step').change(function() {
-        $('#reply_options').toggle(!this.checked);
-        $('#step_by_step_options').toggle(this.checked);
-        USER.tableBaseSetting.step_by_step = this.checked;
-    });
+    $("#fill_table_time").change(function() {
+        const value = $(this).val();
+        const step_by_step = value === 'after'
+        $('#reply_options').toggle(!step_by_step);
+        $('#step_by_step_options').toggle(step_by_step);
+        USER.tableBaseSetting.step_by_step = step_by_step;
+    })
     // 确认执行
     $('#confirm_before_execution').change(function() {
         USER.tableBaseSetting.confirm_before_execution = $(this).prop('checked');
@@ -508,6 +509,7 @@ export function renderSetting() {
     $('#step_by_step_user_prompt').val(USER.tableBaseSetting.step_by_step_user_prompt || '');
     // 分步填表读取的上下文层数
     $('#separateReadContextLayers').val(USER.tableBaseSetting.separateReadContextLayers);
+    $("#fill_table_time").val(USER.tableBaseSetting.step_by_step ? 'after' : 'chat');
     refreshRebuildTemplate()
 
     // private data
@@ -524,7 +526,6 @@ export function renderSetting() {
     updateSwitch('#table_edit_switch', USER.tableBaseSetting.isAiWriteTable);
     updateSwitch('#table_to_chat', USER.tableBaseSetting.isTableToChat);
     // updateSwitch('#advanced_settings', USER.tableBaseSetting.advanced_settings);
-    updateSwitch('#step_by_step', USER.tableBaseSetting.step_by_step);
     updateSwitch('#confirm_before_execution', USER.tableBaseSetting.confirm_before_execution);
     updateSwitch('#use_main_api', USER.tableBaseSetting.use_main_api);
     updateSwitch('#step_by_step_use_main_api', USER.tableBaseSetting.step_by_step_use_main_api);
@@ -537,10 +538,6 @@ export function renderSetting() {
     updateSwitch('#alternate_switch', USER.tableBaseSetting.alternate_switch);
     updateSwitch('#show_drawer_in_extension_list', USER.tableBaseSetting.show_drawer_in_extension_list);
     updateSwitch('#table_to_chat_can_edit', USER.tableBaseSetting.table_to_chat_can_edit);
-
-    // 设置元素结构可见性
-    // $('#advanced_options').toggle(USER.tableBaseSetting.advanced_settings);
-    // $('#custom_api_settings').toggle(!USER.tableBaseSetting.use_main_api);
     $('#reply_options').toggle(!USER.tableBaseSetting.step_by_step);
     $('#step_by_step_options').toggle(USER.tableBaseSetting.step_by_step);
     $('#table_to_chat_options').toggle(USER.tableBaseSetting.isTableToChat);
