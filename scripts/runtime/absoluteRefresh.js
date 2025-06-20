@@ -4,7 +4,7 @@ import { findTableStructureByIndex, convertOldTablesToNewSheets, executeTableEdi
 import { insertRow, updateRow, deleteRow } from "../../core/table/oldTableActions.js";
 import JSON5 from '../../utils/json5.min.mjs'
 import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
-import { reloadCurrentChat } from "/script.js";
+import { TableTwoStepSummary } from "./separateTableUpdate.js";
 import { estimateTokenCount, handleCustomAPIRequest, handleMainAPIRequest } from "../settings/standaloneAPI.js";
 import { profile_prompts } from "../../data/profile_prompts.js";
 import { refreshContextView } from "../editor/chatSheetsDataView.js";
@@ -1433,64 +1433,14 @@ export async function importRebuildTemplate() {
  */
 export async function triggerStepByStepNow() {
     console.log('[Memory Enhancement] Manually triggering step-by-step update...');
-    
-    // 1. 获取所需数据
-    const { piece } = BASE.getLastSheetsPiece();
-    if (!piece) {
-        EDITOR.error('无法触发填表：找不到有效的表格数据。');
-        return;
-    }
-    const latestSheets = BASE.hashSheetsToSheets(piece.hash_sheets);
-    const enabledSheets = latestSheets.filter(sheet => sheet.enable);
-
-    if (enabledSheets.length === 0) {
-        EDITOR.info('没有启用的表格，无需执行填表操作。');
-        return;
-    }
-
-    const oldTables = sheetsToTables(enabledSheets);
-    const originTableText = tablesToString(enabledSheets);
-
-    const tableHeadersOnly = oldTables.map((table, index) => ({
-        tableName: table.tableName || `Table ${index + 1}`,
-        headers: table.columns || []
-    }));
-    const tableHeadersJsonString = JSON.stringify(tableHeadersOnly);
-
-    const chat = USER.getContext().chat;
-    const lastChats = USER.getChatPiece()
-
-    if(!lastChats){
-        EDITOR.error('无法触发填表：找不到有效的聊天记录。');
-        return;
-    }
-
-    const useMainAPI = USER.tableBaseSetting.step_by_step_use_main_api;
-
-    // 2. 调用核心执行函数
-    EDITOR.info("正在启动手动分步填表...", lastChats.mes);
-    const result = await executeIncrementalUpdateFromSummary(
-        lastChats.mes,
-        originTableText,
-        tableHeadersJsonString,
-        enabledSheets, // 传递启用的表格
-        useMainAPI,
-        false, // 手动触发时不静默更新，总是显示确认
-        true, // 明确是分步总结模式
-        true // 总是以静默模式运行
-    );
-
-    if (result === 'success') {
-        reloadCurrentChat();
-    }
+    TableTwoStepSummary("manual")
 }
 
 /**
  * 执行增量更新（可用于普通刷新和分步总结）
  * @param {string} chatToBeUsed - 要使用的聊天记录, 为空则使用最近的聊天记录
  * @param {string} originTableText - 当前表格的文本表示
- * @param {string} tableHeadersJsonString - 当前表格表头的JSON字符串
- * @param {Array} latestSheets - 最新的Sheet对象数组 (用于上下文或直接操作)
+ * @param {Array} referencePiece - 参考用的piece
  * @param {boolean} useMainAPI - 是否使用主API
  * @param {boolean} silentUpdate - 是否静默更新,不显示操作确认
  * @param {boolean} isStepByStepSummary - 是否为分步总结模式
@@ -1500,70 +1450,55 @@ export async function triggerStepByStepNow() {
 export async function executeIncrementalUpdateFromSummary(
     chatToBeUsed = '',
     originTableText,
-    tableHeadersJsonString,
-    latestSheets,
+    finalPrompt,
+    referencePiece,
     useMainAPI,
     silentUpdate = USER.tableBaseSetting.bool_silent_refresh,
-    isStepByStepSummary = false,
     isSilentMode = false
 ) {
     if (!SYSTEM.lazy('executeIncrementalUpdate', 1000)) return '';
 
     try {
-        DERIVED.any.waitingTable = sheetsToTables(latestSheets);
+        DERIVED.any.waitingPiece = referencePiece;
         const lastChats = chatToBeUsed;
 
         let systemPromptForApi;
         let userPromptForApi;
-        const defaultSystemPrompt = `你是一个专业的表格整理助手。请根据用户提供的<聊天记录>和<当前表格>，并遵循<操作规则>，使用<tableEdit>标签和指定的函数（insertRow, updateRow, deleteRow）来输出对表格的修改。确保你的回复只包含<tableEdit>标签及其内容。`;
 
-        if (isStepByStepSummary) {
-            console.log("[Memory Enhancement] Step-by-step summary: Parsing and using multi-message template string.");
-            const stepByStepPromptString = USER.tableBaseSetting.step_by_step_user_prompt;
-            let promptMessages;
+        console.log("[Memory Enhancement] Step-by-step summary: Parsing and using multi-message template string.");
+        const stepByStepPromptString = USER.tableBaseSetting.step_by_step_user_prompt;
+        let promptMessages;
 
-            try {
-                promptMessages = JSON5.parse(stepByStepPromptString);
-                if (!Array.isArray(promptMessages) || promptMessages.length === 0) {
-                    throw new Error("Parsed prompt is not a valid non-empty array.");
-                }
-            } catch (e) {
-                console.error("Error parsing step_by_step_user_prompt string:", e, "Raw string:", stepByStepPromptString);
-                EDITOR.error("分步填表提示词格式错误，无法解析。请检查插件设置。");
-                return 'error';
+        try {
+            promptMessages = JSON5.parse(stepByStepPromptString);
+            if (!Array.isArray(promptMessages) || promptMessages.length === 0) {
+                throw new Error("Parsed prompt is not a valid non-empty array.");
             }
-
-            const replacePlaceholders = (text) => {
-                if (typeof text !== 'string') return '';
-                text = text.replace(/(?<!\\)\$0/g, () => originTableText);
-                text = text.replace(/(?<!\\)\$1/g, () => lastChats);
-                text = text.replace(/(?<!\\)\$2/g, () => tableHeadersJsonString);
-                return text;
-            };
-
-            // 完整处理消息数组，替换每个消息中的占位符
-            const processedMessages = promptMessages.map(msg => ({
-                ...msg,
-                content: replacePlaceholders(msg.content)
-            }));
-
-            // 将处理后的完整消息数组传递给API请求处理函数
-            systemPromptForApi = processedMessages;
-            userPromptForApi = null; // 在这种情况下，userPromptForApi 不再需要
-
-            console.log("Step-by-step: Prompts constructed from parsed multi-message template and sent as an array.");
-
-        } else {
-            console.log("[Memory Enhancement] Normal incremental update: Using refresh_system_message_template and refresh_user_message_template.");
-            systemPromptForApi = USER.tableBaseSetting.refresh_system_message_template || defaultSystemPrompt;
-            userPromptForApi = USER.tableBaseSetting.refresh_user_message_template || '';
-
-            systemPromptForApi = systemPromptForApi.replace(/\$0/g, originTableText);
-            systemPromptForApi = systemPromptForApi.replace(/\$1/g, lastChats);
-            userPromptForApi = userPromptForApi.replace(/\$0/g, originTableText);
-            userPromptForApi = userPromptForApi.replace(/\$1/g, lastChats);
-            userPromptForApi = userPromptForApi.replace(/\$2/g, tableHeadersJsonString);
+        } catch (e) {
+            console.error("Error parsing step_by_step_user_prompt string:", e, "Raw string:", stepByStepPromptString);
+            EDITOR.error("分步填表提示词格式错误，无法解析。请检查插件设置。");
+            return 'error';
         }
+
+        const replacePlaceholders = (text) => {
+            if (typeof text !== 'string') return '';
+            text = text.replace(/(?<!\\)\$0/g, () => originTableText);
+            text = text.replace(/(?<!\\)\$1/g, () => lastChats);
+            text = text.replace(/(?<!\\)\$3/g, () => finalPrompt);
+            return text;
+        };
+
+        // 完整处理消息数组，替换每个消息中的占位符
+        const processedMessages = promptMessages.map(msg => ({
+            ...msg,
+            content: replacePlaceholders(msg.content)
+        }));
+
+        // 将处理后的完整消息数组传递给API请求处理函数
+        systemPromptForApi = processedMessages;
+        userPromptForApi = null; // 在这种情况下，userPromptForApi 不再需要
+
+        console.log("Step-by-step: Prompts constructed from parsed multi-message template and sent as an array.");
 
         // 打印将要发送到API的最终数据
         if (Array.isArray(systemPromptForApi)) {
@@ -1583,8 +1518,8 @@ export async function executeIncrementalUpdateFromSummary(
                 // Pass the array as the first arg and null/empty as the second for multi-message format
                 // Otherwise, pass the separate system and user prompts for normal refresh
                 rawContent = await handleMainAPIRequest(
-                    isStepByStepSummary ? systemPromptForApi : systemPromptForApi,
-                    isStepByStepSummary ? null : userPromptForApi,
+                    systemPromptForApi,
+                    null,
                     isSilentMode
                 );
                 if (rawContent === 'suspended') {
@@ -1598,7 +1533,7 @@ export async function executeIncrementalUpdateFromSummary(
         } else { // Using Custom API
             try {
                 // Calls handleCustomAPIRequest for custom API, pass isStepByStepSummary flag
-                rawContent = await handleCustomAPIRequest(systemPromptForApi, userPromptForApi, isStepByStepSummary, isSilentMode);
+                rawContent = await handleCustomAPIRequest(systemPromptForApi, userPromptForApi, true, isSilentMode);
                 if (rawContent === 'suspended') {
                     EDITOR.info('操作已取消 (自定义API)');
                     return 'suspended';
@@ -1644,7 +1579,7 @@ export async function executeIncrementalUpdateFromSummary(
              return 'success';
         }
         try{
-            executeTableEditActions([operationsString])
+            executeTableEditActions([operationsString], referencePiece)
         }catch(e){
             EDITOR.error("执行表格操作指令时出错: " , e);
         }

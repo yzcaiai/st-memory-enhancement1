@@ -286,10 +286,6 @@ function InitBinging() {
         $('#step_by_step_options').toggle(this.checked);
         USER.tableBaseSetting.step_by_step = this.checked;
     });
-    // 开启多轮字数累计
-    $('#sum_multiple_rounds').change(function() {
-        USER.tableBaseSetting.sum_multiple_rounds = $(this).prop('checked');
-    })
     // 确认执行
     $('#confirm_before_execution').change(function() {
         USER.tableBaseSetting.confirm_before_execution = $(this).prop('checked');
@@ -411,16 +407,6 @@ function InitBinging() {
         const value = $(this).val();
         USER.tableBaseSetting.deep = Math.abs(value);
     })
-    // 触发分步总结的字数阈值
-    $('#step_by_step_threshold').on('input', function() {
-        const value = $(this).val();
-        $('#step_by_step_threshold_value').text(value);
-        USER.tableBaseSetting.step_by_step_threshold = Number(value);
-    });
-    // 分步总结破限词
-    $('#step_by_step_breaking_limit_words').on('input', function() {
-        USER.tableBaseSetting.step_by_step_breaking_limit_words = $(this).val();
-    });
     // 分步填表提示词
     $('#step_by_step_user_prompt').on('input', function() {
         USER.tableBaseSetting.step_by_step_user_prompt = $(this).val();
@@ -518,10 +504,6 @@ export function renderSetting() {
     $('#rebuild_token_limit_value').text(USER.tableBaseSetting.rebuild_token_limit_value);
     $('#custom_temperature').val(USER.tableBaseSetting.custom_temperature);
     $('#custom_temperature_value').text(USER.tableBaseSetting.custom_temperature);
-    $('#step_by_step_threshold').val(USER.tableBaseSetting.step_by_step_threshold);
-    $('#step_by_step_threshold_value').text(USER.tableBaseSetting.step_by_step_threshold);
-    // Load step-by-step breaking limit words
-    $('#step_by_step_breaking_limit_words').val(USER.tableBaseSetting.step_by_step_breaking_limit_words || '');
     // Load step-by-step user prompt
     $('#step_by_step_user_prompt').val(USER.tableBaseSetting.step_by_step_user_prompt || '');
     // 分步填表读取的上下文层数
@@ -547,7 +529,6 @@ export function renderSetting() {
     updateSwitch('#use_main_api', USER.tableBaseSetting.use_main_api);
     updateSwitch('#step_by_step_use_main_api', USER.tableBaseSetting.step_by_step_use_main_api);
     updateSwitch('#ignore_del', USER.tableBaseSetting.bool_ignore_del);
-    updateSwitch('#sum_multiple_rounds', USER.tableBaseSetting.sum_multiple_rounds);
     // updateSwitch('#bool_force_refresh', USER.tableBaseSetting.bool_force_refresh);
     updateSwitch('#bool_silent_refresh', USER.tableBaseSetting.bool_silent_refresh);
     // updateSwitch('#use_token_limit', USER.tableBaseSetting.use_token_limit);

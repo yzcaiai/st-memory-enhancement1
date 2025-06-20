@@ -32,6 +32,16 @@ export const USER = {
     saveSettings: () => APP.saveSettings(),
     saveChat: () => APP.saveChat(),
     getContext: () => APP.getContext(),
+    isSwipe:()=>
+    {
+        const chats = USER.getContext().chat
+        const lastChat = chats[chats.length - 1];
+        const isIncludeEndIndex = (!lastChat) || lastChat.is_user === true;
+        if(isIncludeEndIndex) return {isSwipe: false}
+        const {deep} = BASE.getLastSheetsPiece()
+        return {isSwipe: true, deep}
+    },
+
     // getContextSheets: () => APP.getContext().chatMetadata.sheets,
     // getRoleSheets: () => APP,
     // getGlobalSheets: () => APP,
@@ -233,6 +243,11 @@ export const BASE = {
             }
         }
         return { deep: -1, piece: BASE.initHashSheet() }
+    },
+    getReferencePiece(){
+        const swipeInfo = USER.isSwipe()
+        const {piece} = swipeInfo.isSwipe?swipeInfo.deep===0?{piece:BASE.initHashSheet()}: BASE.getLastSheetsPiece(swipeInfo.deep-1,1000,false):BASE.getLastSheetsPiece()
+        return piece
     },
     hashSheetsToSheets(hashSheets) {
         if (!hashSheets) {

@@ -157,17 +157,10 @@ export function findNextChatWhitTableData(startIndex, isIncludeStartIndex = fals
  * @returns 生成的完整提示词
  */
 export function initTableData(eventData) {
-    const promptContent = replaceUserTag(getAllPrompt(eventData))  //替换所有的<user>标签
+    const allPrompt = USER.tableBaseSetting.message_template.replace('{{tableData}}', getTablePrompt(eventData))
+    const promptContent = replaceUserTag(allPrompt)  //替换所有的<user>标签
     console.log("完整提示", promptContent)
     return promptContent
-}
-
-/**
- * 获取所有的完整提示词
- * @returns 完整提示词
- */
-function getAllPrompt(eventData) {
-    return USER.tableBaseSetting.message_template.replace('{{tableData}}', getTablePrompt(eventData))
 }
 
 /**
@@ -175,29 +168,25 @@ function getAllPrompt(eventData) {
  * @returns {string} 表格相关提示词
  */
 export function getTablePrompt(eventData, isPureData = false) {
-    const swipeInfo = isSwipe()
-    const {piece:lastSheetsPiece} = swipeInfo.isSwipe?swipeInfo.deep===0?{piece:BASE.initHashSheet()}: BASE.getLastSheetsPiece(swipeInfo.deep-1,1000,false):BASE.getLastSheetsPiece()
+    const lastSheetsPiece = BASE.getReferencePiece()
     if(!lastSheetsPiece) return ''
-    const hash_sheets = lastSheetsPiece.hash_sheets
-    const sheets = BASE.hashSheetsToSheets(hash_sheets)
-        .filter(sheet => sheet.enable)
-        .filter(sheet => sheet.sendToContext !== false); // 新增过滤器：只包含sendToContext不为false的表格
-    console.log("构建提示词时的信息 (已过滤)", hash_sheets, sheets)
-    const customParts = isPureData ? ['title', 'headers', 'rows'] : ['title', 'node', 'headers', 'rows', 'editRules'];
-    const sheetDataPrompt = sheets.map((sheet, index) => sheet.getTableText(index, customParts, eventData)).join('\n')
-    return sheetDataPrompt
+    return getTablePromptByPiece(lastSheetsPiece, isPureData)
 }
 
 /**
- * 判断是否在切换swipe
+ * 通过piece获取表格相关提示词
+ * @param {Object} piece 聊天片段
+ * @returns {string} 表格相关提示词
  */
-export function isSwipe() {
-    const chats = USER.getContext().chat
-    const lastChat = chats[chats.length - 1];
-    const isIncludeEndIndex = (!lastChat) || lastChat.is_user === true;
-    if(isIncludeEndIndex) return {isSwipe: false}
-    const {deep} = BASE.getLastSheetsPiece()
-    return {isSwipe: true, deep}
+export function getTablePromptByPiece(piece, isPureData = false) {
+    const {hash_sheets} = piece
+    const sheets = BASE.hashSheetsToSheets(hash_sheets)
+        .filter(sheet => sheet.enable)
+        .filter(sheet => sheet.sendToContext !== false);
+    console.log("构建提示词时的信息 (已过滤)", hash_sheets, sheets)
+    const customParts = isPureData ? ['title', 'headers', 'rows'] : ['title', 'node', 'headers', 'rows', 'editRules'];
+    const sheetDataPrompt = sheets.map((sheet, index) => sheet.getTableText(index, customParts, piece)).join('\n')
+    return sheetDataPrompt
 }
 
 /**
@@ -311,14 +300,12 @@ export function parseTableEditTag(piece, mesIndex = -1, ignoreCheck = false) {
  * 直接通过编辑指令字符串执行操作
  * @param {string[]} matches 编辑指令字符串
  */
-export function executeTableEditActions(matches, mesIndex = -1) {
+export function executeTableEditActions(matches, referencePiece) {
     const tableEditActions = handleTableEditTag(matches)
     tableEditActions.forEach((action, index) => tableEditActions[index].action = classifyParams(formatParams(action.param)))
     console.log("解析到的表格编辑指令", tableEditActions)
 
-    // 获取上一个表格数据
-    const { piece: prePiece } = mesIndex === -1 ? BASE.getLastSheetsPiece(1) : BASE.getLastSheetsPiece(mesIndex - 1, 1000, false)
-    const sheets = BASE.hashSheetsToSheets(prePiece.hash_sheets).filter(sheet => sheet.enable)
+    const sheets = BASE.hashSheetsToSheets(referencePiece.hash_sheets).filter(sheet => sheet.enable)
     console.log("执行指令时的信息", sheets)
     for (const EditAction of sortActions(tableEditActions)) {
         executeAction(EditAction, sheets)
@@ -326,7 +313,6 @@ export function executeTableEditActions(matches, mesIndex = -1) {
     const savePiece = USER.getChatPiece()
     sheets.forEach(sheet => sheet.save(savePiece, true))
     console.log("聊天模板：", BASE.sheetsData.context)
-    console.log("获取到的表格数据", prePiece)
     console.log("测试总chat", USER.getContext().chat)
     return false
 }
@@ -550,7 +536,11 @@ async function onChatCompletionPromptReady(eventData) {
   */
 function getMacroPrompt() {
     try {
-        if (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isAiReadTable === false || USER.tableBaseSetting.step_by_step === true) return ""
+        if (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isAiReadTable === false) return ""
+        if (USER.tableBaseSetting.step_by_step === true) {
+            const promptContent = replaceUserTag(getTablePrompt(undefined, true))
+            return `以下是通过表格记录的当前场景信息以及历史记录信息，你需要以此为参考进行思考：\n${promptContent}`
+        }
         const promptContent = initTableData()
         return promptContent
     }catch (error) {
@@ -564,7 +554,11 @@ function getMacroPrompt() {
   */
 function getMacroTablePrompt() {
     try {
-        if (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isAiReadTable === false || USER.tableBaseSetting.step_by_step === true) return ""
+        if (USER.tableBaseSetting.isExtensionAble === false || USER.tableBaseSetting.isAiReadTable === false) return ""
+        if(USER.tableBaseSetting.step_by_step === true){
+            const promptContent = replaceUserTag(getTablePrompt(undefined, true))
+            return promptContent
+        }
         const promptContent = replaceUserTag(getTablePrompt())
         return promptContent
     }catch (error) {
@@ -628,7 +622,7 @@ async function onMessageEdited(this_edit_mes_id) {
 async function onMessageReceived(chat_id) {
     if (USER.tableBaseSetting.isExtensionAble === false) return
     if (USER.tableBaseSetting.step_by_step === true && USER.getContext().chat.length > 2) {
-        TableTwoStepSummary();  // 请勿使用await，否则会导致主进程阻塞引起的连锁bug
+        TableTwoStepSummary("auto");  // 请勿使用await，否则会导致主进程阻塞引起的连锁bug
     } else {
         if (USER.tableBaseSetting.isAiWriteTable === false) return
         const chat = USER.getContext().chat[chat_id];
