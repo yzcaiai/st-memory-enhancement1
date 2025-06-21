@@ -1262,7 +1262,6 @@ function fixTableFormat(inputText) {
         let tables = safeParse(jsonStr);
         console.log('safeParse强约束解析后:', tables);
 
-        if (tables.length < 6) throw new Error("提取的表格数量不足");
         tables = tables.map(table => ({  // 新增：类型转换
             ...table,
             tableIndex: parseInt(table.tableIndex) || 0
