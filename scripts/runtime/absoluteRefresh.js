@@ -283,19 +283,6 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
         }
         let systemPrompt = template.system_prompt
         let userPrompt = template.user_prompt_begin;
-        // 搜索systemPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats
-        systemPrompt = systemPrompt.replace(/\$0/g, originText);
-        systemPrompt = systemPrompt.replace(/\$1/g, lastChats);
-        systemPrompt = systemPrompt.replace(/\$2/g, tableHeadersJson);
-        systemPrompt = systemPrompt.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
-        // 搜索userPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats，将$2替换成空表头
-        userPrompt = userPrompt.replace(/\$0/g, originText);
-        userPrompt = userPrompt.replace(/\$1/g, lastChats);
-        userPrompt = userPrompt.replace(/\$2/g, tableHeadersJson);
-        userPrompt = userPrompt.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
-
-        // console.log('systemPrompt:', systemPrompt);
-        // console.log('userPrompt:', userPrompt);
 
         let parsedSystemPrompt
 
@@ -307,11 +294,39 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
             parsedSystemPrompt = systemPrompt
         }
 
+        const replacePrompt = (input)=>{
+            let output = input
+            output = output.replace(/\$0/g, originText);
+            output = output.replace(/\$1/g, lastChats);
+            output = output.replace(/\$2/g, tableHeadersJson);
+            output = output.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
+            return output
+        }
+
+        if(typeof parsedSystemPrompt === 'string') {
+            // 搜索systemPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats
+            parsedSystemPrompt = replacePrompt(parsedSystemPrompt);
+        }else{
+            parsedSystemPrompt = parsedSystemPrompt.map(mes => ({...mes, content: replacePrompt(mes.content)}))
+        }
+
+        
+        // 搜索userPrompt中的$0和$1字段，将$0替换成originText，将$1替换成lastChats，将$2替换成空表头
+        userPrompt = userPrompt.replace(/\$0/g, originText);
+        userPrompt = userPrompt.replace(/\$1/g, lastChats);
+        userPrompt = userPrompt.replace(/\$2/g, tableHeadersJson);
+        userPrompt = userPrompt.replace(/\$3/g, DERIVED.any.additionalPrompt ?? '');
+
+        console.log('systemPrompt:', parsedSystemPrompt);
+        // console.log('userPrompt:', userPrompt);
+
+        
+
         // 生成响应内容
         let rawContent;
         if (isUseMainAPI) {
             try {
-                rawContent = await handleMainAPIRequest(systemPrompt, userPrompt);
+                rawContent = await handleMainAPIRequest(parsedSystemPrompt, userPrompt);
                 if (rawContent === 'suspended') {
                     EDITOR.info('操作已取消');
                     return
@@ -324,7 +339,7 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
         }
         else {
             try {
-                rawContent = await handleCustomAPIRequest(systemPrompt, userPrompt);
+                rawContent = await handleCustomAPIRequest(parsedSystemPrompt, userPrompt);
                 if (rawContent === 'suspended') {
                     EDITOR.clear();
                     EDITOR.info('操作已取消');
