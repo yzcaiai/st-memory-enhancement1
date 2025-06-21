@@ -1331,7 +1331,7 @@ export async function modifyRebuildTemplate() {
     const selectedTemplate = USER.tableBaseSetting.lastSelectedTemplate;
     const sheetConfig= {
         formTitle: "编辑表格总结模板",
-        formDescription: "设置总结时的提示词结构，$0为上下文聊天记录，$1为当前表格数据，$2为表格模板[表头]数据，$3为用户输入的附加提示",
+        formDescription: "设置总结时的提示词结构，$0为当前表格数据，$1为上下文聊天记录，$2为表格模板[表头]数据，$3为用户输入的附加提示",
         fields: [
             { label: '模板名字：', type: 'label', text: selectedTemplate },
             { label: '系统提示词', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(填写破限，或者直接填写提示词整体json结构，填写结构的话，整理规则将被架空)' },
@@ -1366,7 +1366,7 @@ export async function modifyRebuildTemplate() {
 export async function newRebuildTemplate() {
     const sheetConfig= {
         formTitle: "新建表格总结模板",
-        formDescription: "设置表格总结时的提示词结构，$0为上下文聊天记录，$1为当前表格数据，$2为表格模板[表头]数据，$3为用户输入的附加提示",
+        formDescription: "设置表格总结时的提示词结构，$0为当前表格数据，$1为上下文聊天记录，$2为表格模板[表头]数据，$3为用户输入的附加提示",
         fields: [
             { label: '模板名字', type: 'text', dataKey: 'name' },
             { label: '系统提示词', type: 'textarea', rows: 6, dataKey: 'system_prompt', description: '(填写破限，或者直接填写提示词整体json结构，填写结构的话，整理规则将被架空)' },
