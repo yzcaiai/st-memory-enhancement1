@@ -1581,6 +1581,7 @@ export async function executeIncrementalUpdateFromSummary(
                     return 'suspended';
                 }
             } catch (error) {
+                console.error('主API请求错误:', error);
                 EDITOR.error('主API请求错误: ' + error.message);
                 return 'error';
             }
