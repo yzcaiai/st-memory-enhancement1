@@ -338,10 +338,17 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
         console.log('rawContent:', rawContent);
 
         // 检查 rawContent 是否有效
-        if (typeof rawContent !== 'string' || !rawContent.trim()) {
+        if (typeof rawContent !== 'string') {
             EDITOR.clear();
-            EDITOR.error('API响应内容无效或为空，无法继续处理表格。');
-            console.error('API响应内容无效或为空，rawContent:', rawContent);
+            EDITOR.error('API响应内容无效，无法继续处理表格。');
+            console.error('API响应内容无效，rawContent:', rawContent);
+            return;
+        }
+
+        if (!rawContent.trim()) {
+            EDITOR.clear();
+            EDITOR.error('API响应内容为空，无法继续处理表格。');
+            console.error('API响应内容为空，rawContent:', rawContent);
             return;
         }
 
