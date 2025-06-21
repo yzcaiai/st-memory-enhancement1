@@ -1581,7 +1581,7 @@ export async function executeIncrementalUpdateFromSummary(
                 }
             } catch (error) {
                 console.error('主API请求错误:', error);
-                EDITOR.error('主API请求错误: ' + error.message);
+                EDITOR.error('主API请求错误: ' + error.message,error);
                 return 'error';
             }
         } else { // Using Custom API
