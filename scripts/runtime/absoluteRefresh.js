@@ -1650,7 +1650,8 @@ export async function executeIncrementalUpdateFromSummary(
         try{
             executeTableEditActions([operationsString], referencePiece)
         }catch(e){
-            EDITOR.error("执行表格操作指令时出错: " , e);
+            EDITOR.error("执行表格操作指令时出错: " , e.message, e);
+            console.error("错误原文: ", operationsString);
         }
         USER.saveChat()
         refreshContextView();
