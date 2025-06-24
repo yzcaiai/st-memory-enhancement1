@@ -333,6 +333,7 @@ function executeAction(EditAction, sheets) {
             // 执行更新操作
             const rowIndex = action.rowIndex ? parseInt(action.rowIndex):0
             if(rowIndex >= sheet.getRowCount()-1) return executeAction({...EditAction, type:'insert'}, sheets)
+            if(!action?.data) return
             Object.entries(action.data).forEach(([key, value]) => {
                 const cell = sheet.findCellByPosition(rowIndex + 1, parseInt(key) + 1)
                 if (!cell) return -1
