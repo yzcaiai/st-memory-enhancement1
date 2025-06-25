@@ -563,6 +563,11 @@ async function renderSheetsDOM() {
     if (!piece || !piece.hash_sheets) return;
 
     const sheets = BASE.hashSheetsToSheets(piece.hash_sheets);
+    sheets.forEach((sheet) => {
+        sheet.cells.forEach((cell) => {
+            delete cell.isDeleted;
+        })
+    })
     console.log('renderSheetsDOM:', piece, sheets)
     DERIVED.any.renderingSheets = sheets
     task.log()
