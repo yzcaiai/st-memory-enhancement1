@@ -564,6 +564,9 @@ async function renderSheetsDOM() {
 
     const sheets = BASE.hashSheetsToSheets(piece.hash_sheets);
     sheets.forEach((sheet) => {
+        sheet.hashSheet = sheet.hashSheet.filter((row) => {
+            return (sheet.cells.get(row[0]).isDeleted !== true);
+        })
         sheet.cells.forEach((cell) => {
             delete cell.isDeleted;
         })
