@@ -568,7 +568,7 @@ async function renderSheetsDOM() {
             return (sheet.cells.get(row[0]).isDeleted !== true);
         })
         sheet.cells.forEach((cell) => {
-            delete cell.isDeleted;
+            cell.isDeleted = false;
         })
     })
     console.log('renderSheetsDOM:', piece, sheets)
