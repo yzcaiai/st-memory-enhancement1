@@ -415,7 +415,7 @@ function sortActions(actions) {
         insert: 1,
         delete: 2
     };
-    return actions.sort((a, b) => priority[a.type] - priority[b.type]);
+    return actions.sort((a, b) => (priority[a.type] === 2 && priority[b.type] === 2) ? (b.action.rowIndex - a.action.rowIndex) : (priority[a.type] - priority[b.type]));
 }
 
 /**
