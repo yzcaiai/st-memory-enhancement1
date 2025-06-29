@@ -24,6 +24,25 @@ const editErrorInfo = {
 }
 
 /**
+ * 修复值中不正确的转义单引号
+ * @param {*} value
+ * @returns
+ */
+function fixUnescapedSingleQuotes(value) {
+    if (typeof value === 'string') {
+        return value.replace(/\\'/g, "'");
+    }
+    if (typeof value === 'object' && value !== null) {
+        for (const key in value) {
+            if (Object.prototype.hasOwnProperty.call(value, key)) {
+                value[key] = fixUnescapedSingleQuotes(value[key]);
+            }
+        }
+    }
+    return value;
+}
+
+/**
  * 通过表格索引查找表格结构
  * @param {number} index 表格索引
  * @returns 此索引的表格结构
@@ -306,16 +325,29 @@ export function executeTableEditActions(matches, referencePiece) {
     tableEditActions.forEach((action, index) => tableEditActions[index].action = classifyParams(formatParams(action.param)))
     console.log("解析到的表格编辑指令", tableEditActions)
 
-    const sheets = BASE.hashSheetsToSheets(referencePiece.hash_sheets).filter(sheet => sheet.enable)
-    console.log("执行指令时的信息", sheets)
+    // 核心修复：不再信任传入的 referencePiece.hash_sheets，而是直接从 BASE 获取当前激活的、唯一的 Sheet 实例。
+    const sheets = BASE.getChatSheets().filter(sheet => sheet.enable)
+    if (!sheets || sheets.length === 0) {
+        console.error("executeTableEditActions: 未找到任何启用的表格实例，操作中止。");
+        return false;
+    }
+
+    console.log("执行指令时的信息 (来自 BASE.getChatSheets)", sheets)
     for (const EditAction of sortActions(tableEditActions)) {
         executeAction(EditAction, sheets)
     }
-    const {piece: savePiece} = USER.getChatPiece()
-    sheets.forEach(sheet => sheet.save(savePiece, true))
+    
+    // 核心修复：确保修改被保存到当前最新的聊天片段中。
+    const { piece: currentPiece } = USER.getChatPiece();
+    if (!currentPiece) {
+        console.error("executeTableEditActions: 无法获取当前聊天片段，保存操作失败。");
+        return false;
+    }
+    sheets.forEach(sheet => sheet.save(currentPiece, true))
+
     console.log("聊天模板：", BASE.sheetsData.context)
     console.log("测试总chat", USER.getContext().chat)
-    return false
+    return true // 返回 true 表示成功
 }
 
 /**
@@ -325,8 +357,13 @@ function executeAction(EditAction, sheets) {
     const action = EditAction.action
     const sheet = sheets[action.tableIndex]
     if (!sheet) {
-        console.error("表格不存在，无法执行编辑操作", EditAction)
-        return -1
+        console.error("表格不存在，无法执行编辑操作", EditAction);
+        return -1;
+    }
+
+    // 在所有操作前，深度清理一次action.data
+    if (action.data) {
+        action.data = fixUnescapedSingleQuotes(action.data);
     }
     switch (EditAction.type) {
         case 'update':
@@ -348,7 +385,7 @@ function executeAction(EditAction, sheets) {
             const cells = sheet.getCellsByRowIndex(lastestRow)
             if(!cells || !action.data) return
             cells.forEach((cell, index) => {
-                if (index === 0) return -1 
+                if (index === 0) return 
                 cell.data.value = action.data[index - 1]
             })
         }

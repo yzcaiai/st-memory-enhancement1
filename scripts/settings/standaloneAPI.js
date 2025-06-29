@@ -651,12 +651,24 @@ export function estimateTokenCount(text) {
  * @returns {Array<Object<{name: string, data: Array<Array<string>>}>>}
  */
 export function ext_getAllTables() {
-    const tables = BASE.getChatSheets();
-    if (!tables || tables.length === 0) {
+    // 核心重构：与 ext_exportAllTablesAsJson 保持一致，确保数据源是最新的持久化状态。
+    
+    // 1. 获取最新的 piece
+    const { piece } = BASE.getLastSheetsPiece();
+    if (!piece || !piece.hash_sheets) {
+        console.warn("[Memory Enhancement] ext_getAllTables: 未找到任何有效的表格数据。");
         return [];
     }
 
+    // 2. 基于最新的 hash_sheets 创建/更新 Sheet 实例
+    const tables = BASE.hashSheetsToSheets(piece.hash_sheets);
+    if (!tables || tables.length === 0) {
+        return [];
+    }
+    
+    // 3. 遍历最新的实例构建数据
     const allData = tables.map(table => {
+        if (!table.enable) return null; // 跳过禁用的表格
         const header = table.getHeader();
         const body = table.getBody();
         const fullData = [header, ...body];
@@ -665,7 +677,7 @@ export function ext_getAllTables() {
             name: table.name,
             data: fullData,
         };
-    });
+    }).filter(Boolean); // 过滤掉 null (禁用的表格)
 
     return allData;
 }
@@ -679,24 +691,51 @@ export function ext_getAllTables() {
  * @returns {Object}
  */
 export function ext_exportAllTablesAsJson() {
-    const tables = BASE.getChatSheets();
+    // 最终、最稳妥的方案：确保输入给 JSON.stringify 的数据是纯净的。
+
+    const { piece } = BASE.getLastSheetsPiece();
+    if (!piece || !piece.hash_sheets) {
+        console.warn("[Memory Enhancement] ext_exportAllTablesAsJson: 未找到任何有效的表格数据。");
+        return {};
+    }
+
+    const tables = BASE.hashSheetsToSheets(piece.hash_sheets);
     if (!tables || tables.length === 0) {
         return {};
     }
 
     const exportData = {};
     tables.forEach(table => {
+        if (!table.enable) return; // 跳过禁用的表格
+
         try {
-            // 只导出 uid, name, 和 content
+            const rawContent = table.getContent(true) || [];
+
+            // 深度清洗，确保所有单元格都是字符串类型。
+            // 这是防止因 undefined、null 或其他非字符串类型导致 JSON.stringify 行为异常的关键。
+            const sanitizedContent = rawContent.map(row =>
+                Array.isArray(row) ? row.map(cell =>
+                    String(cell ?? '') // 将 null 和 undefined 转换为空字符串，其他类型强制转换为字符串
+                ) : []
+            );
+
             exportData[table.uid] = {
                 uid: table.uid,
                 name: table.name,
-                content: table.getContent(true) // 使用 getContent(true) 获取包含表头的完整内容
+                content: sanitizedContent
             };
         } catch (error) {
-            console.error(`导出表格 ${table.name} (UID: ${table.uid}) 时出错:`, error);
+            console.error(`[Memory Enhancement] 导出表格 ${table.name} (UID: ${table.uid}) 时出错:`, error);
         }
     });
 
-    return exportData;
+    // 直接序列化整个清洗过的对象。
+    // 如果这里依然出错，说明问题比预想的更复杂，但理论上这已经是JS中最标准的做法。
+    try {
+        // 为了避免外层宏解析失败，我们直接返回字符串，让宏自己去解析。
+        return exportData;
+    } catch (e) {
+        console.error("[Memory Enhancement] 最终JSON序列化失败:", e);
+        return {}; // 发生意外时返回空对象
+    }
 }

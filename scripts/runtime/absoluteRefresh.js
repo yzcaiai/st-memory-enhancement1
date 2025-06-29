@@ -1528,7 +1528,35 @@ export async function executeIncrementalUpdateFromSummary(
 
     try {
         DERIVED.any.waitingPiece = referencePiece;
-        const lastChats = chatToBeUsed;
+        const separateReadContextLayers = Number($('#separateReadContextLayers').val());
+        const contextChats = await getRecentChatHistory(USER.getContext().chat, separateReadContextLayers, true);
+        const summaryChats = chatToBeUsed;
+
+        // 获取角色世界书内容
+        let lorebookContent = '';
+        if (USER.tableBaseSetting.separateReadLorebook && window.TavernHelper) {
+            try {
+                const charLorebooks = await window.TavernHelper.getCharLorebooks({ type: 'all' });
+                const bookNames = [];
+                if (charLorebooks.primary) {
+                    bookNames.push(charLorebooks.primary);
+                }
+                if (charLorebooks.additional && charLorebooks.additional.length > 0) {
+                    bookNames.push(...charLorebooks.additional);
+                }
+
+                for (const bookName of bookNames) {
+                    if (bookName) {
+                        const entries = await window.TavernHelper.getLorebookEntries(bookName);
+                        if (entries && entries.length > 0) {
+                            lorebookContent += entries.map(entry => entry.content).join('\n');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('[Memory Enhancement] Error fetching lorebook content:', e);
+            }
+        }
 
         let systemPromptForApi;
         let userPromptForApi;
@@ -1551,8 +1579,10 @@ export async function executeIncrementalUpdateFromSummary(
         const replacePlaceholders = (text) => {
             if (typeof text !== 'string') return '';
             text = text.replace(/(?<!\\)\$0/g, () => originTableText);
-            text = text.replace(/(?<!\\)\$1/g, () => lastChats);
+            text = text.replace(/(?<!\\)\$1/g, () => contextChats);
+            text = text.replace(/(?<!\\)\$2/g, () => summaryChats);
             text = text.replace(/(?<!\\)\$3/g, () => finalPrompt);
+            text = text.replace(/(?<!\\)\$4/g, () => lorebookContent);
             return text;
         };
 
@@ -1617,41 +1647,20 @@ export async function executeIncrementalUpdateFromSummary(
             return 'error';
         }
         
-        let processedRawContent = rawContent.replace(/^```(?:xml|json|javascript|html)?\s*\n?/im, '').replace(/\n?```$/m, '');
-        
-        let operationsString = '';
-        const openTag = '<tableEdit>';
-        const closeTag = '</tableEdit>';
-        const startIndex = processedRawContent.indexOf(openTag);
+        // **核心修复**: 使用与常规填表完全一致的 getTableEditTag 函数来提取指令
+        const { matches } = getTableEditTag(rawContent);
 
-        if (startIndex !== -1) {
-            let endIndex = processedRawContent.indexOf(closeTag, startIndex + openTag.length);
-            if (endIndex === -1) {
-                 EDITOR.error("API响应被截断：表格操作指令不完整，缺少</tableEdit>结束标签。");
-                 return 'error';
-            }
-            const contentBetweenTags = processedRawContent.substring(startIndex + openTag.length, endIndex);
-            const singleCommentMatch = contentBetweenTags.match(/^\s*<!--([\s\S]*?)-->\s*$/);
-            if (singleCommentMatch && singleCommentMatch[1] && singleCommentMatch[1].trim() !== '') {
-                operationsString = singleCommentMatch[1].trim();
-            } else {
-                operationsString = contentBetweenTags.replace(/<!--[\s\S]*?-->/g, '').trim();
-            }
-        } else {
-            EDITOR.error("API响应格式错误：未找到<tableEdit>标签。");
-            return 'error';
-        }
-
-        if (operationsString === '') {
-             EDITOR.info("AI在<tableEdit>标签内未提供任何操作指令，表格内容未发生变化。");
-             return 'success';
+        if (!matches || matches.length === 0) {
+            EDITOR.info("AI未返回任何有效的<tableEdit>操作指令，表格内容未发生变化。");
+            return 'success';
         }
 
         try{
-            executeTableEditActions([operationsString], referencePiece)
+            // 将提取到的、未经修改的原始指令数组传递给执行器
+            executeTableEditActions(matches, referencePiece)
         }catch(e){
             EDITOR.error("执行表格操作指令时出错: " , e.message, e);
-            console.error("错误原文: ", operationsString);
+            console.error("错误原文: ", matches.join('\n'));
         }
         USER.saveChat()
         refreshContextView();

@@ -2,7 +2,7 @@ import {BASE, DERIVED, EDITOR, SYSTEM, USER} from '../../core/manager.js';
 import { executeIncrementalUpdateFromSummary, sheetsToTables } from "./absoluteRefresh.js";
 import { newPopupConfirm } from '../../components/popupConfirm.js';
 import { reloadCurrentChat } from "/script.js"
-import {getTablePrompt,initTableData} from "../../index.js"
+import {getTablePrompt,initTableData, undoSheets} from "../../index.js"
 
 let toBeExecuted = [];
 
@@ -99,7 +99,8 @@ export async function TableTwoStepSummary(mode) {
         "取消",
         "执行填表",
         popupId,
-        "一直选是" // <--- 修改按钮文本
+        "不再提示", // dontRemindText: Permanently disables the popup
+        "一直选是"  // alwaysConfirmText: Confirms for the session
     );
 
     console.log('newPopupConfirm result for stepwise summary:', confirmResult);
@@ -120,16 +121,48 @@ export async function TableTwoStepSummary(mode) {
 }
 
 /**
- * 手动总结聊天
- * @param {} chat 
+ * 手动总结聊天（立即填表）
+ * 重构逻辑：
+ * 1. 恢复：首先调用内建的 `undoSheets` 函数，将表格状态恢复到上一版本。
+ * 2. 执行：以恢复后的干净状态为基础，调用标准增量更新流程，向AI请求新的操作并执行。
+ * @param {Array} todoChats - 需要用于填表的聊天记录。
+ * @param {string|boolean} confirmResult - 用户的确认结果。
  */
 export async function manualSummaryChat(todoChats, confirmResult) {
+    // 步骤一：检查是否需要执行“撤销”操作
+    // 首先获取当前的聊天片段，以判断表格状态
+    const { piece: initialPiece } = USER.getChatPiece();
+    if (!initialPiece) {
+        EDITOR.error("无法获取当前的聊天片段，操作中止。");
+        return;
+    }
 
-    // 参考piece
-    const referencePiece = BASE.getReferencePiece();
+    // 只有当表格中已经有内容时，才执行“撤销并重做”
+    if (initialPiece.hash_sheets && Object.keys(initialPiece.hash_sheets).length > 0) {
+        console.log('[Memory Enhancement] 立即填表：检测到表格中有数据，执行恢复操作...');
+        try {
+            await undoSheets(0);
+            EDITOR.success('表格已恢复到上一版本。');
+            console.log('[Memory Enhancement] 表格恢复成功，准备执行填表。');
+        } catch (e) {
+            EDITOR.error('恢复表格失败，操作中止。');
+            console.error('[Memory Enhancement] 调用 undoSheets 失败:', e);
+            return;
+        }
+    } else {
+        console.log('[Memory Enhancement] 立即填表：检测到为空表，跳过恢复步骤，直接执行填表。');
+    }
 
+    // 步骤二：以当前状态（可能已恢复）为基础，继续执行填表
+    // 重新获取 piece，确保我们使用的是最新状态（无论是原始状态还是恢复后的状态）
+    const { piece: referencePiece } = USER.getChatPiece();
+    if (!referencePiece) {
+        EDITOR.error("无法获取用于操作的聊天片段，操作中止。");
+        return;
+    }
+    
     // 表格数据
-    const originText = getTablePrompt()
+    const originText = getTablePrompt(referencePiece);
 
     // 表格总体提示词
     const finalPrompt = initTableData(); // 获取表格相关提示词
@@ -142,7 +175,7 @@ export async function manualSummaryChat(todoChats, confirmResult) {
         todoChats,
         originText,
         finalPrompt,
-        referencePiece,
+        referencePiece, // 直接传递原始的 piece 对象引用
         useMainApiForStepByStep, // API choice for step-by-step
         USER.tableBaseSetting.bool_silent_refresh, // isSilentUpdate
         isSilentMode // Pass silent mode flag
@@ -150,11 +183,16 @@ export async function manualSummaryChat(todoChats, confirmResult) {
 
     console.log('执行独立填表（增量更新）结果:', r);
     if (r === 'success') {
+        // 由于直接在 referencePiece 引用上操作，修改已自动同步，无需手动回写 hash_sheets。
         toBeExecuted.forEach(chat => {
             const chatSwipeUid = getSwipeUid(chat);
             chat.two_step_links[chatSwipeUid].push(swipeUid);   // 标记已执行的两步总结
         });
         toBeExecuted = [];
+
+        // 保存并刷新UI
+        await USER.saveChat();
+        // 根据用户要求，使用整页刷新来确保包括宏在内的所有数据都得到更新。
         reloadCurrentChat();
         return true;
     } else if (r === 'suspended' || r === 'error' || !r) {
