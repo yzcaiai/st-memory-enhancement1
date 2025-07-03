@@ -274,23 +274,19 @@ export class Sheet extends SheetBase {
     }
 }
 
-
-function getLatestChatHistory(chat, chatStairs) {
+/**
+ * 获取制定深度的聊天历史内容
+ * @param {当前聊天文件} chat 
+ * @param {扫描深度} deep 
+ * @returns string
+ */
+function getLatestChatHistory(chat, deep) {
     let filteredChat = chat;
 
-    // 处理忽略用户发送消息的情况
-    // if (ignoreUserSent && chat.length > 0) {
-    //     filteredChat = chat.filter(c => c.is_user === false);
-    // }
-
-    // 有效记录提示
-    if (filteredChat.length < chatStairs) {
-        EDITOR.success(`当前有效记录${filteredChat.length}条，小于设置的${chatStairs}条`);
-    }
     let collected = "";
     const floors = filteredChat.length
-    // 从最新记录开始逆序遍历
-    for (let i = 0; i < chatStairs; i++) {
+    // 从最新记录开始逆序遍历，最大不超过聊天记录最大楼层
+    for (let i = 0; i < min(deep, floors); i++) {
         // 格式化消息并清理标签
         const currentStr = `${filteredChat[floors - i - 1].mes}`
             .replace(/<tableEdit>[\s\S]*?<\/tableEdit>/g, '');
