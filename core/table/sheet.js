@@ -286,7 +286,7 @@ function getLatestChatHistory(chat, deep) {
     let collected = "";
     const floors = filteredChat.length
     // 从最新记录开始逆序遍历，最大不超过聊天记录最大楼层
-    for (let i = 0; i < min(deep, floors); i++) {
+    for (let i = 0; i < Math.min(deep, floors); i++) {
         // 格式化消息并清理标签
         const currentStr = `${filteredChat[floors - i - 1].mes}`
             .replace(/<tableEdit>[\s\S]*?<\/tableEdit>/g, '');
