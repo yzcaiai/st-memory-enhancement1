@@ -12,6 +12,7 @@ import { refreshContextView } from "./scripts/editor/chatSheetsDataView.js";
 import { functionToBeRegistered } from "./services/debugs.js";
 import { parseLooseDict, replaceUserTag } from "./utils/stringUtil.js";
 import {executeTranslation} from "./services/translate.js";
+import applicationFunctionManager from "./services/appFuncManager.js"
 
 
 console.log("______________________记忆插件：开始加载______________________")
@@ -841,9 +842,11 @@ jQuery(async () => {
 
     // 设置表格编辑按钮
     $(document).on('click', '#table_drawer_icon', function () {
-        openAppHeaderTableDrawer();
+        //openAppHeaderTableDrawer();
         // updateTableContainerPosition();
     })
+
+    $('#table_database_settings_drawer .drawer-toggle').on('click', applicationFunctionManager.doNavbarIconClick);
     // // 设置表格编辑按钮
     // $(document).on('click', '.tableEditor_editButton', function () {
     //     let index = $(this).data('index'); // 获取当前点击的索引
