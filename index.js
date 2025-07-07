@@ -841,12 +841,12 @@ jQuery(async () => {
     });
 
     // 设置表格编辑按钮
-    $(document).on('click', '#table_drawer_icon', function () {
-        //openAppHeaderTableDrawer();
-        // updateTableContainerPosition();
-    })
-
-    $('#table_database_settings_drawer .drawer-toggle').on('click', applicationFunctionManager.doNavbarIconClick);
+    console.log("设置表格编辑按钮", applicationFunctionManager.doNavbarIconClick)
+    if (applicationFunctionManager.doNavbarIconClick) {
+        $('#table_database_settings_drawer .drawer-toggle').on('click', applicationFunctionManager.doNavbarIconClick);
+    }else{
+        $('#table_database_settings_drawer .drawer-toggle').on('click', openAppHeaderTableDrawer);
+    }
     // // 设置表格编辑按钮
     // $(document).on('click', '.tableEditor_editButton', function () {
     //     let index = $(this).data('index'); // 获取当前点击的索引
