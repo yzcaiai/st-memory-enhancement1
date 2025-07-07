@@ -208,7 +208,7 @@ export const BASE = {
     reSaveAllChatSheets(sheets) {
         BASE.sheetsData.context = []
         const {piece} = USER.getChatPiece()
-        if(!piece) return EDITOR.error("没有记录载体")
+        if(!piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
         sheets.forEach(sheet => {
             sheet.save(piece, true)
         })
