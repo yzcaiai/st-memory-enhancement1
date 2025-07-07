@@ -845,6 +845,7 @@ jQuery(async () => {
     if (applicationFunctionManager.doNavbarIconClick) {
         $('#table_database_settings_drawer .drawer-toggle').on('click', applicationFunctionManager.doNavbarIconClick);
     }else{
+        $('#table_drawer_content').attr('data-slide-toggle', 'hidden').css('display', 'none');
         $('#table_database_settings_drawer .drawer-toggle').on('click', openAppHeaderTableDrawer);
     }
     // // 设置表格编辑按钮
