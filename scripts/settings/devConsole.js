@@ -191,7 +191,7 @@ export async function openTableDebugLogPopup() {
     $exportInfoButton.on('click', () => {
         const infoData = {
             chatMate: BASE.sheetsData.context,
-            lastestSheet: BASE.getLastestSheets(),
+            lastestSheet: BASE.getLastSheetsPiece(),
             allHash: USER.getContext().chat.map(chat => chat.hash_sheets ?? null),
         };
         const infoDataString = JSON.stringify(infoData, null, 2);
