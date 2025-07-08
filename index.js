@@ -8,7 +8,6 @@ import { initTest } from "./components/_fotTest.js";
 import { initAppHeaderTableDrawer, openAppHeaderTableDrawer } from "./scripts/renderer/appHeaderTableBaseDrawer.js";
 import { initRefreshTypeSelector } from './scripts/runtime/absoluteRefresh.js';
 import {refreshTempView, updateTableContainerPosition} from "./scripts/editor/tableTemplateEditView.js";
-import { refreshContextView } from "./scripts/editor/chatSheetsDataView.js";
 import { functionToBeRegistered } from "./services/debugs.js";
 import { parseLooseDict, replaceUserTag } from "./utils/stringUtil.js";
 import {executeTranslation} from "./services/translate.js";
@@ -766,20 +765,39 @@ export async function undoSheets(deep) {
  * @description 更新表格视图，使用新的Sheet系统
  * @returns {Promise<*[]>}
  */
-async function updateSheetsView() {
+async function updateSheetsView(mesId) {
     const task = new SYSTEM.taskTiming('openAppHeaderTableDrawer_task')
     try{
        // 刷新表格视图
         console.log("========================================\n更新表格视图")
         refreshTempView(true).then(() => task.log());
         console.log("========================================\n更新表格内容视图")
-        refreshContextView().then(() => task.log());
+        BASE.refreshContextView(mesId).then(() => task.log());
 
         // 更新系统消息中的表格状态
         updateSystemMessageTableStatus(); 
     }catch (error) {
         EDITOR.error("记忆插件：更新表格视图失败\n原因：", error.message, error)
     }
+}
+
+/**
+ * 打开表格drawer
+ */
+export function openDrawer() {
+    const drawer = $('#table_database_settings_drawer .drawer-toggle')
+    if (isDrawerNewVersion()) {
+        applicationFunctionManager.doNavbarIconClick.call(drawer)
+    }else{
+        return openAppHeaderTableDrawer()
+    }
+}
+
+/**
+ * 获取是新版还是旧版drawer
+ */
+export function isDrawerNewVersion() {
+    return !!applicationFunctionManager.doNavbarIconClick
 }
 
 jQuery(async () => {
@@ -801,7 +819,7 @@ jQuery(async () => {
         }
     })
 
-    // 注意：已移除旧表格系统的初始化代码，现在使用新的Sheet系统
+    $('.extraMesButtons').append('<div title="查看表格" class="mes_button open_table_by_id">表格</div>');
 
     // 分离手机和电脑事件
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
@@ -821,6 +839,17 @@ jQuery(async () => {
 
     // 应用程序启动时加载设置
     loadSettings();
+
+    // 表格弹出窗
+    $(document).on('click', '.open_table_by_id', function () {
+        const messageId = parseInt($(this).closest('.mes').attr('mesid'))
+        if (USER.getContext().chat[messageId].is_user === true) {
+            toastr.warning('用户消息不支持表格编辑')
+            return
+        }
+        BASE.refreshContextView(messageId)
+        openDrawer()
+    })
 
     // 注册宏
     USER.getContext().registerMacro("tablePrompt", () =>getMacroPrompt())
@@ -842,7 +871,7 @@ jQuery(async () => {
 
     // 设置表格编辑按钮
     console.log("设置表格编辑按钮", applicationFunctionManager.doNavbarIconClick)
-    if (applicationFunctionManager.doNavbarIconClick) {
+    if (isDrawerNewVersion()) {
         $('#table_database_settings_drawer .drawer-toggle').on('click', applicationFunctionManager.doNavbarIconClick);
     }else{
         $('#table_drawer_content').attr('data-slide-toggle', 'hidden').css('display', 'none');

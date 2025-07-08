@@ -7,7 +7,6 @@ import { updateSystemMessageTableStatus } from "../renderer/tablePushToChat.js";
 import { TableTwoStepSummary } from "./separateTableUpdate.js";
 import { estimateTokenCount, handleCustomAPIRequest, handleMainAPIRequest } from "../settings/standaloneAPI.js";
 import { profile_prompts } from "../../data/profile_prompts.js";
-import { refreshContextView } from "../editor/chatSheetsDataView.js";
 import { Form } from '../../components/formManager.js';
 import { refreshRebuildTemplate } from "../settings/userExtensionSetting.js"
 
@@ -433,7 +432,7 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
                 // 刷新 UI
                 const tableContainer = document.querySelector('#tableContainer');
                 if (tableContainer) {
-                    refreshContextView();
+                    BASE.refreshContextView();
                     updateSystemMessageTableStatus();
                     EDITOR.success('生成表格成功！');
                     r = 'success';
@@ -691,7 +690,7 @@ export async function refreshTableActions(force = false, silentUpdate = false, c
         USER.getContext().saveChat();
         // 刷新 UI
         const tableContainer = document.querySelector('#tableContainer');
-        refreshContextView();
+        BASE.refreshContextView();
         updateSystemMessageTableStatus()
         EDITOR.success('表格总结完成');
     } catch (error) {
@@ -1663,7 +1662,7 @@ export async function executeIncrementalUpdateFromSummary(
             console.error("错误原文: ", matches.join('\n'));
         }
         USER.saveChat()
-        refreshContextView();
+        BASE.refreshContextView();
         updateSystemMessageTableStatus();
         EDITOR.success('独立填表完成！');
         return 'success';

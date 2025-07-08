@@ -219,15 +219,17 @@ export const BASE = {
     updateSelectBySheetStatus(){
         updateSelectBySheetStatus()
     },
-    getLastSheetsPiece(deep = 0, cutoff = 1000, startAtLastest = true) {
-        console.log("向上查询表格数据，深度", deep, "截断", cutoff, "从最新开始", startAtLastest)
+    getLastSheetsPiece(deep = 0, cutoff = 1000, deepStartAtLastest = true, direction = 'up') {
+        console.log("向上查询表格数据，深度", deep, "截断", cutoff, "从最新开始", deepStartAtLastest)
         // 如果没有找到新系统的表格数据，则尝试查找旧系统的表格数据（兼容模式）
         const chat = APP.getContext().chat
         if (!chat || chat.length === 0 || chat.length <= deep) {
             return { deep: -1, piece: BASE.initHashSheet() }
         }
-        const startIndex = startAtLastest ? chat.length - deep - 1 : deep;
-        for (let i = startIndex; i >= 0 && i >= startIndex - cutoff; i--) {
+        const startIndex = deepStartAtLastest ? chat.length - deep - 1 : deep;
+        for (let i = startIndex;
+            direction === 'up' ? (i >= 0 && i >= startIndex - cutoff) : (i < chat.length && i < startIndex + cutoff);
+            direction === 'up' ? i-- : i++) {
             if (chat[i].is_user === true) continue; // 跳过用户消息
             if (chat[i].hash_sheets) {
                 console.log("向上查询表格数据，找到表格数据", chat[i])
