@@ -96,7 +96,7 @@ export class Sheet extends SheetBase {
 
             return this;
         } catch (e) {
-            EDITOR.error(`保存模板失败：${e}`);
+            EDITOR.error(`保存模板失败`, e.message, e);
             return false;
         }
     }

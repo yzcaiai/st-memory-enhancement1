@@ -261,7 +261,7 @@ export async function handleApiTestRequest(apiUrl, encryptedApiKeys, modelName) 
 
         return results; // 返回结果数组
     } catch (error) {
-        EDITOR.error(`API 测试过程中发生错误: ${error.message}`);
+        EDITOR.error(`API 测试过程中发生错误`, error.message, error);
         console.error("API Test Error:", error);
         // 发生一般错误时返回一个表示所有测试密钥失败的数组
         return keysToTest.map((_, index) => ({
@@ -419,7 +419,7 @@ export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByS
         } catch (error) { // This catch should ideally not be reached due to inner try/catch
             console.error(`处理密钥索引 ${keyIndexToTry} 时发生意外错误:`, error);
             lastError = error;
-            EDITOR.error(`处理第 ${keyIndexToTry + 1} 个 Key 时发生意外错误: ${error.message || '未知错误'}`);
+            EDITOR.error(`处理第 ${keyIndexToTry + 1} 个 Key 时发生意外错误`, error.message || '未知错误', error);
         }
     }
 
@@ -431,7 +431,7 @@ export async function handleCustomAPIRequest(systemPrompt, userPrompt, isStepByS
     }
 
     const errorMessage = `所有 ${attempts} 次尝试均失败。最后错误: ${lastError?.message || '未知错误'}`;
-    EDITOR.error(errorMessage);
+    EDITOR.error(errorMessage, "", lastError);
     console.error('所有API调用尝试均失败。', lastError);
     return `错误: ${errorMessage}`; // 返回一个明确的错误字符串
 
@@ -543,7 +543,7 @@ export async function updateModelList() {
         normalizedUrl.pathname = normalizedUrl.pathname.replace(/\/$/, '') + '/models';
         modelsUrl = normalizedUrl.href;
     } catch (e) {
-        EDITOR.error(`无效的API URL: ${apiUrl}`);
+        EDITOR.error(`无效的API URL: ${apiUrl}`, "", e);
         console.error('URL解析失败:', e);
         return;
     }

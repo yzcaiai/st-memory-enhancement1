@@ -865,7 +865,7 @@ jQuery(async () => {
             return JSON.stringify(jsonData);
         } catch (error) {
             console.error("GET_ALL_TABLES_JSON 宏执行出错:", error);
-            EDITOR.error("导出所有表格数据时出错。");
+            EDITOR.error("导出所有表格数据时出错。","",error);
             return "{}"; // 出错时返回空JSON对象
         }
     });

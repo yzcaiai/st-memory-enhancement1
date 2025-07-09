@@ -199,7 +199,7 @@ export async function getPromptAndRebuildTable(templateName = '', additionalProm
         return r;
     } catch (error) {
         console.error('获取提示模板失败:', error);
-        EDITOR.error(`获取提示模板失败: ${error.message}`);
+        EDITOR.error(`获取提示模板失败`, error.message, error);
     }
 }
 
@@ -332,7 +332,7 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
                 }
             } catch (error) {
                 EDITOR.clear();
-                EDITOR.error('主API请求错误: ' + error.message);
+                EDITOR.error('主API请求错误: ' , error.message, error);
                 console.error('主API请求错误:', error);
             }
         }
@@ -346,7 +346,7 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
                 }
             } catch (error) {
                 EDITOR.clear();
-                EDITOR.error('自定义API请求错误: ' + error.message);
+                EDITOR.error('自定义API请求错误: ' , error.message, error);
             }
         }
         console.log('rawContent:', rawContent);
@@ -443,7 +443,7 @@ export async function rebuildTableActions(force = false, silentUpdate = USER.tab
                 return r;
             } catch (error) {
                 console.error('保存表格时出错:', error);
-                EDITOR.error(`生成表格失败：${error.message}`);
+                EDITOR.error(`生成表格失败`, error.message, error);
             }
         } else {
             EDITOR.error("生成表格保存失败：内容为空");
@@ -509,7 +509,7 @@ export async function refreshTableActions(force = false, silentUpdate = false, c
                     return 'suspended'
                 }
             } catch (error) {
-                EDITOR.error('主API请求错误: ' + error.message);
+                EDITOR.error('主API请求错误: ' , error.message, error);
             }
         }
         else {
@@ -520,7 +520,7 @@ export async function refreshTableActions(force = false, silentUpdate = false, c
                     return 'suspended'
                 }
             } catch (error) {
-                EDITOR.error('自定义API请求错误: ' + error.message);
+                EDITOR.error('自定义API请求错误: ' , error.message, error);
             }
         }
 
@@ -695,7 +695,7 @@ export async function refreshTableActions(force = false, silentUpdate = false, c
         EDITOR.success('表格总结完成');
     } catch (error) {
         console.error('总结过程出错:', error);
-        EDITOR.error(`总结失败：${error.message}`);
+        EDITOR.error(`总结失败`, error.message, error);
     } finally {
 
     }
@@ -1487,7 +1487,7 @@ export async function importRebuildTemplate() {
             refreshRebuildTemplate();
             EDITOR.success(`导入模板 "${name}" 成功`);
         } catch (error) {
-            EDITOR.error(`导入失败：${error.message}`);
+            EDITOR.error(`导入失败`, error.message, error);
         } finally {
             document.body.removeChild(input);
         }
@@ -1571,7 +1571,7 @@ export async function executeIncrementalUpdateFromSummary(
             }
         } catch (e) {
             console.error("Error parsing step_by_step_user_prompt string:", e, "Raw string:", stepByStepPromptString);
-            EDITOR.error("独立填表提示词格式错误，无法解析。请检查插件设置。");
+            EDITOR.error("独立填表提示词格式错误，无法解析。请检查插件设置。", e.message, e);
             return 'error';
         }
 
@@ -1625,7 +1625,7 @@ export async function executeIncrementalUpdateFromSummary(
                 }
             } catch (error) {
                 console.error('主API请求错误:', error);
-                EDITOR.error('主API请求错误: ' + error.message, error);
+                EDITOR.error('主API请求错误: ' , error.message, error);
                 return 'error';
             }
         } else { // Using Custom API
@@ -1636,7 +1636,7 @@ export async function executeIncrementalUpdateFromSummary(
                     return 'suspended';
                 }
             } catch (error) {
-                EDITOR.error('自定义API请求错误: ' + error.message);
+                EDITOR.error('自定义API请求错误: ' , error.message, error);
                 return 'error';
             }
         }
@@ -1669,7 +1669,7 @@ export async function executeIncrementalUpdateFromSummary(
 
     } catch (error) {
         console.error('执行增量更新时出错:', error);
-        EDITOR.error(`执行增量更新失败：${error.message}`);
+        EDITOR.error(`执行增量更新失败`, error.message, error);
         console.log('[Memory Enhancement Plugin] Error context:', {
             timestamp: new Date().toISOString(),
             error: error.message,

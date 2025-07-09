@@ -145,7 +145,7 @@ export async function manualSummaryChat(todoChats, confirmResult) {
             EDITOR.success('表格已恢复到上一版本。');
             console.log('[Memory Enhancement] 表格恢复成功，准备执行填表。');
         } catch (e) {
-            EDITOR.error('恢复表格失败，操作中止。');
+            EDITOR.error('恢复表格失败，操作中止。', e.message, e);
             console.error('[Memory Enhancement] 调用 undoSheets 失败:', e);
             return;
         }

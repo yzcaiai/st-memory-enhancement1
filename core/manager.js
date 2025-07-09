@@ -200,7 +200,7 @@ export const BASE = {
     saveChatSheets(saveToPiece = true) {
         if(saveToPiece){
             const {piece} = USER.getChatPiece()
-            if(!piece) return EDITOR.error("表格数据没有记录载体，请聊过一轮后再试")
+            if(!piece) return EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
             BASE.getChatSheets(sheet => sheet.save(piece, true))
         }else BASE.getChatSheets(sheet => sheet.save(undefined, true))
         USER.saveChat()

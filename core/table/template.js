@@ -91,7 +91,7 @@ export class SheetTemplate extends SheetBase {
             if(!manualSave) USER.saveSettings();
             return this;
         } catch (e) {
-            EDITOR.error(`保存模板失败：${e}`);
+            EDITOR.error(`保存模板失败`, e.message, e);
             return null;
         }
     }

@@ -49,7 +49,7 @@ export async function copyTable() {
  */
 async function pasteTable() {
     if (USER.getContext().chat.length === 0) {
-        EDITOR.error("请至少让ai回复一条消息作为表格载体")
+        EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
         return
     }
     const confirmation = await EDITOR.callGenericPopup('粘贴会清空原有的表格数据，是否继续？', EDITOR.POPUP_TYPE.CONFIRM, '', { okButton: "继续", cancelButton: "取消" });
@@ -72,7 +72,7 @@ async function pasteTable() {
  */
 async function importTable(mesId, viewSheetsContainer) {
     if (mesId === -1) {
-        EDITOR.error("请至少让ai回复一条消息作为表格载体")
+        EDITOR.error("没有记录载体，表格是保存在聊天记录中的，请聊至少一轮后再重试")
         return
     }
 
