@@ -380,6 +380,7 @@ function executeAction(EditAction, sheets) {
         case 'insert': {
             // 执行插入操作
             const cell = sheet.findCellByPosition(sheet.getRowCount() - 1, 0)
+            if (!cell) return -1
             cell.newAction(cell.CellAction.insertDownRow, {}, false)
             const lastestRow = sheet.getRowCount() - 1
             const cells = sheet.getCellsByRowIndex(lastestRow)
