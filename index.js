@@ -432,7 +432,15 @@ function formatParams(paramArray) {
             return Number(trimmed);
         }
         if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            return parseLooseDict(trimmed);
+            const parsed = parseLooseDict(trimmed);
+            if (typeof parsed === 'object' && parsed !== null) {
+                Object.keys(parsed).forEach(key => {
+                    if (!/^\d+$/.test(key)) {
+                        delete parsed[key];
+                    }
+                });
+            }
+            return parsed;
         }
 
         // 其他情况都返回字符串
