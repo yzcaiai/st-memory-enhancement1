@@ -217,8 +217,11 @@ export async function openTableDebugLogPopup() {
             reader.onload = async (e) => {
                 try {
                     const json = JSON.parse(e.target.result);
-                    
+                    BASE.sheetsData.context = json.chatMate;
+                    const lastestPiece = USER.getChatPiece().piece
+                    lastestPiece.hash_sheets = json.lastestSheet.piece.hash_sheets;
                     console.log('导入的调试信息：', json);
+                    USER.saveChat()
                 } catch (error) {
                     console.error('导入失败：', error);
                 }

@@ -767,13 +767,12 @@ export async function undoSheets(deep) {
  * @returns {Promise<*[]>}
  */
 async function updateSheetsView(mesId) {
-    const task = new SYSTEM.taskTiming('openAppHeaderTableDrawer_task')
     try{
        // 刷新表格视图
         console.log("========================================\n更新表格视图")
-        refreshTempView(true).then(() => task.log());
+        refreshTempView(true)
         console.log("========================================\n更新表格内容视图")
-        BASE.refreshContextView(mesId).then(() => task.log());
+        BASE.refreshContextView(mesId)
 
         // 更新系统消息中的表格状态
         updateSystemMessageTableStatus(); 

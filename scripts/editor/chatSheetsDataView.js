@@ -331,6 +331,7 @@ async function confirmAction(event, text = '是否继续该操作？') {
  * 单元格高亮
  */
 export function cellHighlight(sheet) {
+    if(!lastCellsHashSheet) return;
     const lastHashSheet = lastCellsHashSheet[sheet.uid] || []
     if ((sheet.hashSheet.length < 2) && (lastHashSheet.length < 2)) return;    //表格内容为空的时候不执行后续函数,提高健壮性
     const hashSheetFlat = sheet.hashSheet.flat()
