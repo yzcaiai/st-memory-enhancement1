@@ -561,8 +561,8 @@ async function renderSheetsDOM(mesId = -1) {
     DERIVED.any.renderingMesId = mesId
     updateSystemMessageTableStatus();
     task.log()
-    const {deep: lastestDeep} = BASE.getLastSheetsPiece()
-    const { piece, deep } = mesId === -1 ? {piece:USER.getContext().chat[lastestDeep], deep: lastestDeep} : {piece:USER.getContext().chat[mesId], deep: mesId}
+    const {deep: lastestDeep, piece: lastestPiece} = BASE.getLastSheetsPiece()
+    const { piece, deep } = mesId === -1 ? {piece:lastestPiece, deep: lastestDeep} : {piece:USER.getContext().chat[mesId], deep: mesId}
     if (!piece || !piece.hash_sheets) return;
 
     if( deep === lastestDeep) DERIVED.any.isRenderLastest = true;
