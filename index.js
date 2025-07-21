@@ -80,7 +80,7 @@ export function buildSheetsByTemplates(targetPiece) {
             const newSheet = BASE.createChatSheetByTemp(template);
             newSheet.save(targetPiece);
         } catch (error) {
-            EDITOR.error(`[Memory Enhancement] 从模板创建或保存 sheet 时出错:`, "", error);
+            EDITOR.error(`[Memory Enhancement] 从模板创建或保存 sheet 时出错:`, error.message, error);
         }
     })
     BASE.updateSelectBySheetStatus()
