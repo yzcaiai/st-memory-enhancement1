@@ -423,7 +423,6 @@ async function updateDragTables() {
     selectedSheetUids.forEach((uid, index) => {
 
         let sheetDataExists;
-        console.log("content:", BASE.sheetsData.context)
         if (scope === 'chat') {
             // 检查 uid 是否存在于 BASE.sheetsData.context
             sheetDataExists = BASE.sheetsData.context?.some(sheetData => sheetData.uid === uid);

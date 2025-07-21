@@ -121,6 +121,13 @@ export class SheetBase {
         const cols = valueSheet[0].length
         const rows = valueSheet.length
         const newHashSheet = Array.from({ length: rows }, (_, i) => Array.from({ length: cols }, (_, j) => {
+            const value = valueSheet[i][j] || '';
+            const cellType = this.getCellTypeByPosition(i, j);
+            // 如果存在相同值的单元格，则复用该单元格，否则
+            const oldCell = this.findCellByValue(valueSheet[i][j] || '', cellType)
+            if (oldCell) {
+                return oldCell.uid; // 复用已有单元格
+            }
             const cell = new Cell(this);
             this.cells.set(cell.uid, cell);
             this.cellHistory.push(cell);
@@ -145,6 +152,19 @@ export class SheetBase {
         if(this.sourceData) this.source.data = this.sourceData
 
         this.markPositionCacheDirty();
+    }
+
+    getCellTypeByPosition(rowIndex, colIndex) {
+        if (rowIndex === 0 && colIndex === 0) {
+            return Cell.CellType.sheet_origin;
+        }
+        if (rowIndex === 0) {
+            return Cell.CellType.column_header;
+        }
+        if (colIndex === 0) {
+            return Cell.CellType.row_header;
+        }
+        return Cell.CellType.cell;
     }
 
     loadCells() {
@@ -191,8 +211,8 @@ export class SheetBase {
         }
     }
 
-    findCellByValue(value) {
-        const cell = this.cellHistory.find(cell => cell.data.value === value);
+    findCellByValue(value, cellType = null) {
+        const cell = this.cellHistory.find(cell => cell.data.value === value && (cellType === null || cell.type === cellType));
         if (!cell) {
             return null;
         }

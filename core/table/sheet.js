@@ -193,6 +193,15 @@ export class Sheet extends SheetBase {
         sheetDataToSave.content = this.getContent(true)
         return sheetDataToSave
     }
+
+    getReadableJson() {
+        return{
+            tableName: this.name,
+            tableUid: this.uid,
+            columns: this.getHeader(),
+            content: this.getContent()
+        }
+    }
     /** _______________________________________ 以下函数不进行外部调用 _______________________________________ */
 
     #load(target) {
