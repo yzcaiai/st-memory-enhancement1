@@ -208,7 +208,7 @@ export class Sheet extends SheetBase {
             throw new Error('未找到对应的模板');
         }
         if (typeof target === 'object') {
-            if (target.domain === this.SheetDomain.global) {
+            if (target.domain === SheetBase.SheetDomain.global) {
                 console.log('从模板转化表格', target, this);
                 this.loadJson(target)
                 this.domain = 'chat'

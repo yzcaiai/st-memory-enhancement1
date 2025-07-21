@@ -24,8 +24,6 @@ export function filterSavingData(sheet, key=["uid", "name", "domain", "type", "e
         if(k === 'cellHistory') {
             r.cellHistory = sheet.cellHistory.map((
                 {
-                    CellAction,
-                    CellType,
                     bridge,
                     parent,
                     element,
