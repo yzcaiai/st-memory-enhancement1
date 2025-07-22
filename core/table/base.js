@@ -121,13 +121,6 @@ export class SheetBase {
         const cols = valueSheet[0].length
         const rows = valueSheet.length
         const newHashSheet = Array.from({ length: rows }, (_, i) => Array.from({ length: cols }, (_, j) => {
-            const value = valueSheet[i][j] || '';
-            const cellType = this.getCellTypeByPosition(i, j);
-            // 如果存在相同值的单元格，则复用该单元格，否则
-            const oldCell = this.findCellByValue(valueSheet[i][j] || '', cellType)
-            if (oldCell) {
-                return oldCell.uid; // 复用已有单元格
-            }
             const cell = new Cell(this);
             this.cells.set(cell.uid, cell);
             this.cellHistory.push(cell);
