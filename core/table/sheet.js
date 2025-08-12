@@ -26,9 +26,45 @@ export class Sheet extends SheetBase {
      * @param {Function} cellEventHandler
      * @param targetHashSheet
      * */
-    renderSheet(cellEventHandler = this.lastCellEventHandler, targetHashSheet = this.hashSheet) {
+    renderSheet(cellEventHandler = this.lastCellEventHandler, targetHashSheet = this.hashSheet, lastCellsHashSheet = null) {
         this.lastCellEventHandler = cellEventHandler;
 
+        // 预先计算渲染所需的数据副本，避免修改实际的 this.hashSheet
+        const currentHashSheet = Array.isArray(targetHashSheet) ? targetHashSheet : (this.hashSheet || []);
+        // 仅对数组做本地浅拷贝；不要调用 BASE.copyHashSheets（它面向 hash_sheets 映射对象，不是二维数组）
+        let renderHashSheet = Array.isArray(currentHashSheet)
+            ? currentHashSheet.map(r => (Array.isArray(r) ? r.slice() : []))
+            : [];
+
+        // 集成单元格高亮逻辑（来源：chatSheetsDataView.cellHighlight）
+        // 1) 获取上一轮的 hash_sheets（优先使用参数；若无参数且存在渲染上下文，则自动计算）
+        let prevHashSheetsMap = lastCellsHashSheet;
+        if (!prevHashSheetsMap && typeof DERIVED?.any?.renderDeep === 'number' && DERIVED.any.renderDeep !== 0) {
+            try {
+                prevHashSheetsMap = BASE.getLastSheetsPiece(DERIVED.any.renderDeep - 1, 3, false)?.piece?.hash_sheets;
+                if (prevHashSheetsMap) prevHashSheetsMap = BASE.copyHashSheets(prevHashSheetsMap);
+            } catch (_) {
+                // 忽略获取失败，保持无高亮
+            }
+        }
+
+        const lastHashSheet = prevHashSheetsMap?.[this.uid] || [];
+
+        // 2) 找出被删除的行（上一轮存在但本轮不存在的行首），并在渲染副本中插入这些行用于高亮展示（不修改实际数据）
+        const deleteRowFirstHashes = [];
+        if (prevHashSheetsMap) {
+            const currentFlat = currentHashSheet.flat();
+            lastHashSheet.forEach((row, index) => {
+                if (!currentFlat.includes(row?.[0])) {
+                    deleteRowFirstHashes.push(row?.[0]);
+                    // 在渲染副本中插入
+                    const rowCopy = row ? row.slice() : [];
+                    renderHashSheet.splice(index, 0, rowCopy);
+                }
+            });
+        }
+
+        // DOM 构建
         this.element = document.createElement('table');
         this.element.classList.add('sheet-table', 'tableDom');
         this.element.style.position = 'relative';
@@ -46,8 +82,8 @@ export class Sheet extends SheetBase {
         // 清空 tbody 的内容
         tbody.innerHTML = '';
 
-        // 遍历 hashSheet，渲染每一个单元格
-        targetHashSheet.forEach((rowUids, rowIndex) => {
+        // 遍历渲染用的 hashSheet 副本，渲染每一个单元格
+        renderHashSheet.forEach((rowUids, rowIndex) => {
             const rowElement = document.createElement('tr');
             rowUids.forEach((cellUid, colIndex) => {
                 let cell = this.cells.get(cellUid)
@@ -66,6 +102,49 @@ export class Sheet extends SheetBase {
             });
             tbody.appendChild(rowElement); // 将 rowElement 添加到 tbody 中
         });
+
+        // 若无上一轮数据，则不进行高亮，直接返回
+        if (!prevHashSheetsMap) return this.element;
+
+        // 当当前或上一轮表格都只有表头（或为空）时，直接返回（不做 keep-all 处理）
+        if ((currentHashSheet.length < 2) && (lastHashSheet.length < 2)) {
+            return this.element; // 表格内容为空时不执行后续逻辑，提升健壮性
+        }
+
+        const lastHashSheetFlat = lastHashSheet.flat();
+
+        // 3) 为每个单元格打上变化类型标记（基于渲染副本）
+        const changeSheet = renderHashSheet.map((row) => {
+            const isNewRow = !lastHashSheetFlat.includes(row?.[0]);
+            const isDeletedRow = deleteRowFirstHashes.includes(row?.[0]);
+            return row.map((hash) => {
+                if (isNewRow) return { hash, type: 'newRow' };
+                if (isDeletedRow) return { hash, type: 'deletedRow' };
+                if (!lastHashSheetFlat.includes(hash)) return { hash, type: 'update' };
+                return { hash, type: 'keep' };
+            })
+        });
+
+        // 4) 根据变化类型为元素添加样式类（移除 keep-all-item 逻辑）
+        changeSheet.forEach((row, rowIndex) => {
+            if (rowIndex === 0) return;
+            row.forEach((cell) => {
+                const sheetCell = this.cells.get(cell.hash);
+                const cellElement = sheetCell?.element;
+                if (!cellElement) return;
+
+                if (cell.type === 'newRow') {
+                    cellElement.classList.add('insert-item');
+                } else if (cell.type === 'update') {
+                    cellElement.classList.add('update-item');
+                } else if (cell.type === 'deletedRow') {
+                    cellElement.classList.add('delete-item');
+                } else {
+                    cellElement.classList.add('keep-item');
+                }
+            });
+        });
+
         return this.element;
     }
 

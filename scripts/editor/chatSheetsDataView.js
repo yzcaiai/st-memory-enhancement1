@@ -14,7 +14,6 @@ let copyTableData = null
 let selectedCell = null
 let editModeSelectedRows = []
 let viewSheetsContainer = null
-let lastCellsHashSheet = null
 const userTableEditInfo = {
     chatIndex: null,
     editAble: false,
@@ -328,92 +327,6 @@ async function confirmAction(event, text = '是否继续该操作？') {
     event()
 }
 
-/**
- * 单元格高亮
- */
-export function cellHighlight(sheet) {
-    if (!lastCellsHashSheet) return;
-    const lastHashSheet = lastCellsHashSheet[sheet.uid] || []
-    if ((sheet.hashSheet.length < 2) && (lastHashSheet.length < 2)) {
-        sheet.hashSheet[0].forEach((hash) => {
-            const cellElement = sheet.cells.get(hash).element
-            cellElement.classList.add('keep-all-item')
-        })
-        return;    //表格内容为空的时候不执行后续函数,提高健壮性
-    }
-    const hashSheetFlat = sheet.hashSheet.flat()
-    const lastHashSheetFlat = lastHashSheet.flat()
-    let deleteRow = []
-    lastHashSheet.forEach((row, index) => {
-        if (!hashSheetFlat.includes(row[0])) {
-            deleteRow.push(row[0])
-            sheet.hashSheet.splice(index, 0, lastHashSheet[index])
-        }
-    })
-
-    const changeSheet = sheet.hashSheet.map((row) => {
-        const isNewRow = !lastHashSheetFlat.includes(row[0])
-        const isDeletedRow = deleteRow.includes(row[0])
-        return row.map((hash) => {
-            if (isNewRow) return { hash, type: "newRow" }
-            if (isDeletedRow) return { hash, type: "deletedRow" }
-            if (!lastHashSheetFlat.includes(hash)) return { hash, type: "update" }
-            return { hash, type: "keep" }
-        })
-    })
-    let isKeepAllSheet = true
-    const colCount = changeSheet[0].length
-    let isKeepAllCol = Array.from({ length: colCount }, (_, i) => i < 2 ? false : true)
-    changeSheet.forEach((row, rowIndex) => {
-        if (rowIndex === 0)
-            return
-        let isKeepAllRow = true
-        row.forEach((cell, colIndex) => {
-            let sheetCell = sheet.cells.get(cell.hash)
-            const cellElement = sheetCell.element
-            if (cell.type === "newRow") {
-                cellElement.classList.add('insert-item')
-                isKeepAllRow = false
-                isKeepAllCol[colIndex] = false
-            } else if (cell.type === "update") {
-                cellElement.classList.add('update-item')
-                isKeepAllRow = false
-                isKeepAllCol[colIndex] = false
-            } else if (cell.type === "deletedRow") {
-                sheetCell.isDeleted = true
-                cellElement.classList.add('delete-item')
-                isKeepAllRow = false
-            } else if (sheetCell.isDeleted === true) {
-                cellElement.classList.add('delete-item')
-                isKeepAllRow = false
-            } else {
-                cellElement.classList.add('keep-item')
-            }
-        })
-        if (isKeepAllRow) {
-            row.forEach((cell) => {
-                const cellElement = sheet.cells.get(cell.hash).element
-                cellElement.classList.add('keep-all-item')
-            })
-        } else {
-            isKeepAllSheet = false
-        }
-    })
-    if (isKeepAllSheet) {
-        sheet.hashSheet[0].forEach((hash) => {
-            const cellElement = sheet.cells.get(hash).element
-            cellElement.classList.add('keep-all-item')
-        })
-    } else {
-        sheet.hashSheet.forEach((row) => {
-            row.filter((_, i) => isKeepAllCol[i]).forEach((hash) => {
-                const cellElement = sheet.cells.get(hash).element
-                cellElement.classList.add('keep-all-item')
-            })
-        })
-    }
-}
-
 async function cellHistoryView(cell) {
     await openCellHistoryPopup(cell)
 }
@@ -429,15 +342,6 @@ async function customSheetStyle(cell) {
 
 function cellClickEvent(cell) {
     cell.element.style.cursor = 'pointer'
-
-    // 判断是否需要根据历史数据进行高亮
-    /* const lastCellUid = lastCellsHashSheet.has(cell.uid)
-    if (!lastCellUid) {
-        cell.element.style.backgroundColor = '#00ff0011'
-    }
-    else if (cell.parent.cells.get(lastCellUid).data.value !== cell.data.value) {
-        cell.element.style.backgroundColor = '#0000ff11'
-    } */
 
     cell.on('click', async (event) => {
         event.stopPropagation();
@@ -555,7 +459,7 @@ export async function renderEditableSheetsDOM(_sheets, _viewSheetsContainer, _ce
         } else {
             sheetElement = await instance.renderSheet(_cellClickEvent)
         }
-        cellHighlight(instance)
+        // 已集成到 Sheet.renderSheet 内部，这里无需再次调用
         console.log("渲染表格：", sheetElement)
         $(sheetContainer).append(sheetElement)
 
@@ -606,14 +510,6 @@ async function renderSheetsDOM(mesId = -1) {
     })
     console.log('renderSheetsDOM:', piece, sheets)
     DERIVED.any.renderingSheets = sheets
-    task.log()
-    // 用于记录上一次的hash_sheets，渲染时根据上一次的hash_sheets进行高亮
-    if (deep != 0) {
-        lastCellsHashSheet = BASE.getLastSheetsPiece(deep - 1, 3, false)?.piece.hash_sheets;
-        if (lastCellsHashSheet) {
-            lastCellsHashSheet = BASE.copyHashSheets(lastCellsHashSheet)
-        }
-    }
 
     task.log()
     $(viewSheetsContainer).empty()
