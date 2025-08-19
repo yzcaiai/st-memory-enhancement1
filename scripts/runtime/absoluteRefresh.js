@@ -1004,12 +1004,20 @@ export async function executeIncrementalUpdateFromSummary(
             return 'success';
         }
 
+        // De-duplicate the actions to prevent identical rows from being added in the same operation.
+        const uniqueMatches = [...new Set(matches)];
+
+        if (uniqueMatches.length < matches.length) {
+            console.log(`[Memory Enhancement] Removed ${matches.length - uniqueMatches.length} duplicate action(s).`);
+            EDITOR.info(`已自动移除 ${matches.length - uniqueMatches.length} 个重复的操作指令。`);
+        }
+
         try {
             // 将提取到的、未经修改的原始指令数组传递给执行器
-            executeTableEditActions(matches, referencePiece)
+            executeTableEditActions(uniqueMatches, referencePiece)
         } catch (e) {
             EDITOR.error("执行表格操作指令时出错: ", e.message, e);
-            console.error("错误原文: ", matches.join('\n'));
+            console.error("错误原文: ", uniqueMatches.join('\n'));
         }
         USER.saveChat()
         BASE.refreshContextView();
